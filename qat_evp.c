@@ -490,6 +490,7 @@ int qat_pkey_methods(ENGINE *e, EVP_PKEY_METHOD **pmeth,
 
 static inline const EVP_CIPHER *qat_gcm_cipher_sw_impl(int nid)
 {
+	DEBUG("CHOOSING EVP_CIPHER\n");
     switch (nid) {
         case NID_aes_128_gcm:
             return EVP_aes_128_gcm();
@@ -522,6 +523,7 @@ const EVP_CIPHER *qat_create_gcm_cipher_meth(int nid, int keylen)
 
 #ifdef ENABLE_QAT_SW_GCM
     if (qat_sw_ipsec) {
+		DEBUG("Got qat_sw_ipsec\n");
         if ((c = EVP_CIPHER_meth_new(nid, AES_GCM_BLOCK_SIZE, keylen)) == NULL) {
             WARN("Failed to allocate cipher methods for nid %d\n", nid);
             return NULL;

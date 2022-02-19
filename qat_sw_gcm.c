@@ -63,6 +63,9 @@
 #include "qat_utils.h"
 #include "qat_sw_gcm.h"
 
+/* Cache flush includes */
+#include <x86intrin.h>
+
 #define QAT_GCM_TLS_TOTAL_IV_LEN (EVP_GCM_TLS_FIXED_IV_LEN + EVP_GCM_TLS_EXPLICIT_IV_LEN)
 #define QAT_GCM_TLS_PAYLOADLENGTH_MSB_OFFSET 2
 #define QAT_GCM_TLS_PAYLOADLENGTH_LSB_OFFSET 1
@@ -138,15 +141,19 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
                          const unsigned char* iv,
                          int                  enc)
 {
+	printf("vaesgcm init\n");
     vaesgcm_ctx* qctx   = NULL;
     int          retval = 1;
 
     /* Make sure we have an initalized ipsec mb manager before we start calling APIs */
+	/*removing need for ipsec_mgr*/
+	/*
     if (!ipsec_mgr) {
         WARN("Intel IPsec MB Manager not Initialized.\n");
         QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_INIT_FAILURE);
         return 0;
     }
+	*/
 
     DEBUG("QAT SW GCM Started CTX = %p, key = %p, iv = %p, enc = %d\n",
          (void*)ctx, (void*)inkey, (void*)iv, enc);
@@ -889,6 +896,7 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
     struct gcm_key_data* key_data_ptr = NULL;
     struct gcm_context_data* gcm_ctx_ptr = NULL;
 
+	printf("AES_GCM CALLED\n");
     DEBUG("enc = %d - ctx = %p, out = %p, in = %p, len = %zu\n", enc, (void*)ctx, (void*)out,
           (void*)in, len);
 
@@ -935,6 +943,10 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
         qat_imb_aes_gcm_enc_update(nid, ipsec_mgr, key_data_ptr,
                                    gcm_ctx_ptr, out, in, message_len);
 
+		/*FLUSH HERE*/
+		DEBUG("ENCRYPT FLUSH\n");
+		_mm_clflush( (char *)out );
+
         /* Finalize to get the GCM Tag */
         qat_imb_aes_gcm_enc_finalize(nid, ipsec_mgr, key_data_ptr,
                                      gcm_ctx_ptr, tag,
@@ -944,6 +956,9 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
     } else {
         qat_imb_aes_gcm_dec_update(nid, ipsec_mgr, key_data_ptr,
                                    gcm_ctx_ptr, out, in, message_len);
+		/*FLUSH HERE*/
+		DEBUG("DECRYPT FLUSH\n");
+		_mm_clflush( (char *)out );
 
         DUMPL("Payload Dump After - Decrypt Update",
              (const unsigned char*)orig_payload_loc, len);
@@ -965,8 +980,9 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
             DUMPL("Computed GCM TAG", (const unsigned char*)tag, EVP_GCM_TLS_TAG_LEN);
             DUMPL("Payload After Decrypt Finalize", (const unsigned char*)orig_payload_loc,
                    len);
-            QATerr(QAT_F_AES_GCM_TLS_CIPHER, QAT_R_GCM_TAG_VERIFY_FAILURE);
-            return -1;
+            //QATerr(QAT_F_AES_GCM_TLS_CIPHER, QAT_R_GCM_TAG_VERIFY_FAILURE);
+			/*Let mac verification fail*/
+            //return -1;
         }
     }
 

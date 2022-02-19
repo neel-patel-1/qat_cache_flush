@@ -147,11 +147,6 @@ static int test_sm2_ecdsa(int count, int size, ENGINE * e, int print_output,
 
     sigsize = ECDSA_size(EVP_PKEY_get0_EC_KEY(sm2_pkey));
 
-    if (!EVP_PKEY_set_alias_type(sm2_pkey, EVP_PKEY_SM2)) {
-        ret = -1;
-        WARN("# FAIL: EVP_PKEY set allias type Failed\n");
-        goto builtin_err;
-    }
 
     sm2_pctx = EVP_PKEY_CTX_new(sm2_pkey, NULL);
     if (sm2_pctx == NULL) {

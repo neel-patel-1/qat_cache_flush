@@ -537,6 +537,7 @@ int multibuff_init(ENGINE *e)
 {
     int err = 0;
 
+	printf("QAT_SW initialization\n");
     DEBUG("QAT_SW initialization\n");
     DEBUG("- External polling: %s\n", enable_external_polling ? "ON": "OFF");
     DEBUG("- Heuristic polling: %s\n", enable_heuristic_polling ? "ON": "OFF");

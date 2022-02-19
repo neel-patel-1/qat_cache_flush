@@ -428,6 +428,12 @@ static int hw_support(void) {
     DEBUG("Processor Support - AVX512F = %u, VAES = %u, VPCLMULQDQ = %u\n",
           avx512f, vaes, vpclmulqdq);
 
+	/*
+	attempting to force sw_offload methods to be called
+	*/
+	DEBUG("FORCING IPSEC\n");
+	qat_sw_ipsec = 1;
+	
     if (avx512f && vaes && vpclmulqdq) {
         qat_sw_ipsec = 1;
         return 1;
