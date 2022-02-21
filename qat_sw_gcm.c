@@ -141,7 +141,6 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
                          const unsigned char* iv,
                          int                  enc)
 {
-	printf("vaesgcm init\n");
     vaesgcm_ctx* qctx   = NULL;
     int          retval = 1;
 
@@ -896,7 +895,6 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
     struct gcm_key_data* key_data_ptr = NULL;
     struct gcm_context_data* gcm_ctx_ptr = NULL;
 
-	printf("AES_GCM CALLED\n");
     DEBUG("enc = %d - ctx = %p, out = %p, in = %p, len = %zu\n", enc, (void*)ctx, (void*)out,
           (void*)in, len);
 
@@ -944,8 +942,9 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
                                    gcm_ctx_ptr, out, in, message_len);
 
 		/*FLUSH HERE*/
-		DEBUG("ENCRYPT FLUSH\n");
+		/*DEBUG("ENCRYPT FLUSH\n");
 		_mm_clflush( (char *)out );
+		*/
 
         /* Finalize to get the GCM Tag */
         qat_imb_aes_gcm_enc_finalize(nid, ipsec_mgr, key_data_ptr,
@@ -957,12 +956,16 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
         qat_imb_aes_gcm_dec_update(nid, ipsec_mgr, key_data_ptr,
                                    gcm_ctx_ptr, out, in, message_len);
 		/*FLUSH HERE*/
+		/*
 		DEBUG("DECRYPT FLUSH\n");
 		_mm_clflush( (char *)out );
+		*/
 
         DUMPL("Payload Dump After - Decrypt Update",
              (const unsigned char*)orig_payload_loc, len);
 
+		/* remove tag verification */
+		/*
         uint8_t tempTag[EVP_GCM_TLS_TAG_LEN];
         memset(tempTag, 0, EVP_GCM_TLS_TAG_LEN);
 
@@ -981,9 +984,9 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
             DUMPL("Payload After Decrypt Finalize", (const unsigned char*)orig_payload_loc,
                    len);
             //QATerr(QAT_F_AES_GCM_TLS_CIPHER, QAT_R_GCM_TAG_VERIFY_FAILURE);
-			/*Let mac verification fail*/
-            //return -1;
+            return -1;
         }
+	    */
     }
 
     if (enc)

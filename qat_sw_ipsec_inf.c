@@ -123,7 +123,6 @@ void qat_imb_aes_gcm_enc_update(int nid, IMB_MGR *ipsec_mgr,
                                 uint64_t len)
 {
 
-	DEBUG("AES ENCRYPTING...\n");
     switch (nid) {
         case NID_aes_128_gcm:
             IMB_AES128_GCM_ENC_UPDATE(ipsec_mgr,
