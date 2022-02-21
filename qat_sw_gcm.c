@@ -173,14 +173,14 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
     /* If a key is set and a tag has already been calculated
      * this cipher ctx is being reused, so zero the gcm ctx and tag state variables */
     if (qctx->ckey_set && qctx->tag_calculated) {
-        memset(&(qctx->gcm_ctx), 0, sizeof(qctx->gcm_ctx));
+        memset(&(qctx->gcm_ctx), 0, sizeof(qctx->gcm_ctx));DEBUG("KEY SET AND TAG CALCULATED\n");
         qctx->tag_set = 0;
         qctx->tag_calculated = 0;
         }
 
     /* Allocate gcm auth tag */
     if (!qctx->tag) {
-        qctx->tag = OPENSSL_zalloc(EVP_GCM_TLS_TAG_LEN);
+        qctx->tag = OPENSSL_zalloc(EVP_GCM_TLS_TAG_LEN); DEBUG("ALLOCATING GCM AUTH TAG\n");
 
         if (qctx->tag) {
             qctx->tag_len = EVP_GCM_TLS_TAG_LEN;
@@ -195,7 +195,7 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
 
     /* Allocate gcm calculated_tag */
     if (!qctx->calculated_tag) {
-        qctx->calculated_tag = OPENSSL_zalloc(EVP_GCM_TLS_TAG_LEN);
+        qctx->calculated_tag = OPENSSL_zalloc(EVP_GCM_TLS_TAG_LEN);DEBUG("ALLOCATING CALCULATED GCM TAG\b");
 
         if (qctx->calculated_tag) {
             qctx->tag_calculated = 0;
@@ -418,6 +418,7 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
         }
 
         case EVP_CTRL_GCM_SET_IV_FIXED: {
+		/* what does set IV_FIXED DO? removal broke it*/
             DEBUG("CTRL Type = EVP_CTRL_GCM_SET_IV_FIXED, ctx = %p, type = %d,"
                   " arg = %d, ptr = %p\n", (void*)ctx, type, arg, ptr);
 
@@ -574,6 +575,7 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
         }
 
         case EVP_CTRL_AEAD_TLS1_AAD: {
+		/*why do we have additional authentication data?*/
             DEBUG("CTRL Type = EVP_CTRL_AEAD_TLS1_AAD, ctx = %p, type = %d,"
                   " arg = %d, ptr = %p\n", (void*)ctx, type, arg, ptr);
 
@@ -938,23 +940,32 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 
     if (enc) {
         /* Encrypt the payload */
+	    /*Don't encrypt*/
+	    /*
         qat_imb_aes_gcm_enc_update(nid, ipsec_mgr, key_data_ptr,
                                    gcm_ctx_ptr, out, in, message_len);
 
+				   */
 		/*FLUSH HERE*/
 		/*DEBUG("ENCRYPT FLUSH\n");
 		_mm_clflush( (char *)out );
 		*/
 
         /* Finalize to get the GCM Tag */
+	    /*Don't get GCM Tag*/
+	    /*
         qat_imb_aes_gcm_enc_finalize(nid, ipsec_mgr, key_data_ptr,
                                      gcm_ctx_ptr, tag,
                                      EVP_GCM_TLS_TAG_LEN);
+				     */
 
         qctx->tag_set = 1;
     } else {
+	    /*Don't decrypt*/
+	    /*
         qat_imb_aes_gcm_dec_update(nid, ipsec_mgr, key_data_ptr,
                                    gcm_ctx_ptr, out, in, message_len);
+				   */
 		/*FLUSH HERE*/
 		/*
 		DEBUG("DECRYPT FLUSH\n");
