@@ -947,9 +947,8 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 
 				   */
 		/*FLUSH HERE*/
-		/*DEBUG("ENCRYPT FLUSH\n");
+		DEBUG("ENCRYPT FLUSH\n");
 		_mm_clflush( (char *)out );
-		*/
 
         /* Finalize to get the GCM Tag */
 	    /*Don't get GCM Tag*/
@@ -967,10 +966,9 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
                                    gcm_ctx_ptr, out, in, message_len);
 				   */
 		/*FLUSH HERE*/
-		/*
 		DEBUG("DECRYPT FLUSH\n");
 		_mm_clflush( (char *)out );
-		*/
+		
 
         DUMPL("Payload Dump After - Decrypt Update",
              (const unsigned char*)orig_payload_loc, len);
