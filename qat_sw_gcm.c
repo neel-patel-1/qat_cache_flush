@@ -952,11 +952,9 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 
         /* Finalize to get the GCM Tag */
 	    /*Don't get GCM Tag*/
-	    /*
         qat_imb_aes_gcm_enc_finalize(nid, ipsec_mgr, key_data_ptr,
                                      gcm_ctx_ptr, tag,
                                      EVP_GCM_TLS_TAG_LEN);
-				     */
 
         qctx->tag_set = 1;
     } else {

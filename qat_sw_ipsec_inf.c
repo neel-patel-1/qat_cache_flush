@@ -209,12 +209,10 @@ void qat_imb_aes_gcm_enc_finalize(int nid, IMB_MGR *ipsec_mgr,
 
         case NID_aes_256_gcm:
 			DEBUG("PRE AES_FINALIZE\n");
-			/*
             IMB_AES256_GCM_ENC_FINALIZE(ipsec_mgr,
                                         key_data_ptr,
                                         gcm_ctx_ptr,
                                         auth_tag, auth_tag_len);
-			*/
             break;
     }
 }
