@@ -89,6 +89,7 @@ void qat_imb_aes_gcm_init_var_iv(int nid, IMB_MGR *ipsec_mgr,
                                 const uint8_t *aad, const uint64_t aad_len)
 {
 
+			/*
 	DEBUG("AES_INIT_VAR_IV\n");
     switch (nid) {
         case NID_aes_128_gcm:
@@ -109,15 +110,14 @@ void qat_imb_aes_gcm_init_var_iv(int nid, IMB_MGR *ipsec_mgr,
 
         case NID_aes_256_gcm:
 			DEBUG("PRE INIT IV\n");
-			/*
             IMB_AES256_GCM_INIT_VAR_IV(ipsec_mgr,
                                        key_data_ptr,
                                        gcm_ctx_ptr,
                                        iv, iv_len,
                                        aad, aad_len);
-			*/
             break;
     }
+			*/
 }
 
 void qat_imb_aes_gcm_enc_update(int nid, IMB_MGR *ipsec_mgr,
@@ -161,6 +161,7 @@ void qat_imb_aes_gcm_dec_update(int nid, IMB_MGR *ipsec_mgr,
                                 uint64_t len)
 {
 	DEBUG("AES_DECRYPT_UPDATE\n");
+	/*
     switch (nid) {
         case NID_aes_128_gcm:
             IMB_AES128_GCM_DEC_UPDATE(ipsec_mgr,
@@ -178,14 +179,13 @@ void qat_imb_aes_gcm_dec_update(int nid, IMB_MGR *ipsec_mgr,
 
         case NID_aes_256_gcm:
 			DEBUG("PRE_DECRYPT_UPDATE\n");
-			/*
             IMB_AES256_GCM_DEC_UPDATE(ipsec_mgr,
                                       key_data_ptr,
                                       gcm_ctx_ptr,
                                       out, in, len);
-			*/
             break;
     }
+	    */
 }
 
 void qat_imb_aes_gcm_enc_finalize(int nid, IMB_MGR *ipsec_mgr,
@@ -229,6 +229,7 @@ void qat_imb_aes_gcm_dec_finalize(int nid, IMB_MGR *ipsec_mgr,
 {
 
 	DEBUG("AES_DECRYPT_FINALIZE\n");
+			/*
     switch (nid) {
         case NID_aes_128_gcm:
             IMB_AES128_GCM_DEC_FINALIZE(ipsec_mgr,
@@ -246,12 +247,11 @@ void qat_imb_aes_gcm_dec_finalize(int nid, IMB_MGR *ipsec_mgr,
 
         case NID_aes_256_gcm:
 			DEBUG("PRE DECRYPT FINALIZE\n");
-			/*
             IMB_AES256_GCM_DEC_FINALIZE(ipsec_mgr,
                                         key_data_ptr,
                                         gcm_ctx_ptr,
                                         auth_tag, auth_tag_len);
-			*/
             break;
     }
+			*/
 }
