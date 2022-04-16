@@ -60,13 +60,17 @@ void qat_imb_aes_gcm_precomp(int nid, IMB_MGR *ipsec_mgr,
 	DEBUG("AES_PRECOMP\n");
     switch (nid) {
         case NID_aes_128_gcm:
-            aes_keyexp_128_enc_avx512(key, key_data_ptr);
-            IMB_AES128_GCM_PRECOMP(ipsec_mgr, key_data_ptr);
+			DEBUG("PRECOMP PRE AVX512\n");
+            //aes_keyexp_128_enc_avx512(key, key_data_ptr);
+			DEBUG("PRECOMP PRE IMB\n");
+            //IMB_AES128_GCM_PRECOMP(ipsec_mgr, key_data_ptr);
             break;
 
         case NID_aes_192_gcm:
-            aes_keyexp_192_enc_avx512(key, key_data_ptr);
-            IMB_AES192_GCM_PRECOMP(ipsec_mgr, key_data_ptr);
+			DEBUG("PRECOMP PRE AVX512\n");
+            //aes_keyexp_192_enc_avx512(key, key_data_ptr);
+			DEBUG("PRECOMP PRE IMB\n");
+            //IMB_AES192_GCM_PRECOMP(ipsec_mgr, key_data_ptr);
             break;
 
         case NID_aes_256_gcm:
