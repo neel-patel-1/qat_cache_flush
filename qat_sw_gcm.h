@@ -85,6 +85,9 @@ typedef struct vaesgcm_ctx_t {
     int            iv_len;
     unsigned int   iv_set;
     int            iv_gen;
+
+	void* 		   ax_area;
+	int			   ax_fd; 
 }
 __attribute__((aligned(64))) vaesgcm_ctx;
 # pragma pack(pop)

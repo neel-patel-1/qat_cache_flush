@@ -66,6 +66,17 @@
 /* Cache flush includes */
 #include <x86intrin.h>
 
+/* Char Device Offload Open includes */
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+
 #define QAT_GCM_TLS_TOTAL_IV_LEN (EVP_GCM_TLS_FIXED_IV_LEN + EVP_GCM_TLS_EXPLICIT_IV_LEN)
 #define QAT_GCM_TLS_PAYLOADLENGTH_MSB_OFFSET 2
 #define QAT_GCM_TLS_PAYLOADLENGTH_LSB_OFFSET 1
@@ -169,6 +180,13 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
         QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_QCTX_NULL);
         return 0;
     }
+	/* initialize offload copy address for offloading record encryption/decryption */
+	if ( (qctx->ax_fd = open("/dev/scullc0", O_RDWR)) < 0 ){
+        WARN("char dev unopened\n");
+        QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_CTX_NULL);
+        return 0;
+	}
+	qctx->ax_area = mmap(NULL, 16 * 1024, PROT_READ|PROT_WRITE, MAP_SHARED, qctx->ax_fd, 0);
 
     /* If a key is set and a tag has already been calculated
      * this cipher ctx is being reused, so zero the gcm ctx and tag state variables */
@@ -950,6 +968,9 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 		DEBUG("ENCRYPT FLUSH\n");
 		_mm_clflush( (char *)out );
 
+		/*perform copy to axdimm emulation char dev*/
+		out = memcpy((void *)qctx->ax_area, (void *)in, message_len);
+
         /* Finalize to get the GCM Tag */
 	    /*Don't get GCM Tag*/
 		/*
@@ -968,6 +989,8 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 		/*FLUSH HERE*/
 		DEBUG("DECRYPT FLUSH\n");
 		_mm_clflush( (char *)out );
+
+		out = memcpy((void *)qctx->ax_area, (void *)in, message_len);
 		
 
         DUMPL("Payload Dump After - Decrypt Update",
