@@ -77,6 +77,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+/* measuring effect of waiting on accelerator */
+#include <time.h>
+
 #define QAT_GCM_TLS_TOTAL_IV_LEN (EVP_GCM_TLS_FIXED_IV_LEN + EVP_GCM_TLS_EXPLICIT_IV_LEN)
 #define QAT_GCM_TLS_PAYLOADLENGTH_MSB_OFFSET 2
 #define QAT_GCM_TLS_PAYLOADLENGTH_LSB_OFFSET 1
@@ -187,6 +190,11 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
         return 0;
 	}
 	qctx->ax_area = mmap(NULL, 16 * 1024, PROT_READ|PROT_WRITE, MAP_SHARED, qctx->ax_fd, 0);
+
+	/* initialize accelerator wait time for offloading record encryption in blocking synchronous case */
+	qctx->accel_time = (struct timespec *)OPENSSL_zalloc(sizeof(struct timespec));
+	qctx->accel_time->tv_sec=0;
+	qctx->accel_time->tv_nsec=500;
 
     /* If a key is set and a tag has already been calculated
      * this cipher ctx is being reused, so zero the gcm ctx and tag state variables */
@@ -726,6 +734,15 @@ int vaesgcm_ciphers_cleanup(EVP_CIPHER_CTX* ctx)
             qctx->tag_set = 0;
         }
 
+        if (qctx->accel_time) {
+            OPENSSL_free(qctx->accel_time);
+            qctx->accel_time     = NULL;
+        }
+
+		if (qctx->ax_area) {
+			munmap(qctx->ax_area, 16 * 1024 );
+		}
+
     }
     return 1;
 }
@@ -958,45 +975,36 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 
     if (enc) {
         /* Encrypt the payload */
-	    /*Don't encrypt*/
-	    /*
-        qat_imb_aes_gcm_enc_update(nid, ipsec_mgr, key_data_ptr,
-                                   gcm_ctx_ptr, out, in, message_len);
-
-				   */
 		/*FLUSH HERE*/
-		DEBUG("ENCRYPT FLUSH\n");
-		_mm_clflush( (char *)out );
+		DEBUG("ENCRYPT MEMCPY\n");
 
 		/*perform copy to axdimm emulation char dev*/
 		out = memcpy((void *)qctx->ax_area, (void *)in, message_len);
-
-        /* Finalize to get the GCM Tag */
-	    /*Don't get GCM Tag*/
-		/*
-        qat_imb_aes_gcm_enc_finalize(nid, ipsec_mgr, key_data_ptr,
-                                     gcm_ctx_ptr, tag,
-                                     EVP_GCM_TLS_TAG_LEN);
-									 */
-
+		nanosleep(qctx->accel_time, NULL);
         qctx->tag_set = 1;
     } else {
-	    /*Don't decrypt*/
-	    /*
-        qat_imb_aes_gcm_dec_update(nid, ipsec_mgr, key_data_ptr,
-                                   gcm_ctx_ptr, out, in, message_len);
-				   */
+	    /*decrypt*/
 		/*FLUSH HERE*/
-		DEBUG("DECRYPT FLUSH\n");
-		_mm_clflush( (char *)out );
+		DEBUG("DECRYPT MEMCPY\n");
 
+		/**
+		* Memory copy implicit request to accelerator, assume tag verification occurs on encrypted plaintext
+		* This buffer is being passed to application -- must ensure data is ready (accelerator finished processing)
+		* wait for ACCEL_TIME seconds before returning results
+		*/
 		out = memcpy((void *)qctx->ax_area, (void *)in, message_len);
+		nanosleep(qctx->accel_time, NULL);
+		if ( ( out = memcpy((void *)qctx->ax_area, (void *)in, message_len)) == NULL )
+		{
+			WARN("ctx = %p, nig = %, GCM TAG Verfication Failed\n", ctx, nid);
+			return -1;
+		}
 		
 
         DUMPL("Payload Dump After - Decrypt Update",
              (const unsigned char*)orig_payload_loc, len);
 
-		/* remove tag verification */
+		
 		/*
         uint8_t tempTag[EVP_GCM_TLS_TAG_LEN];
         memset(tempTag, 0, EVP_GCM_TLS_TAG_LEN);

@@ -88,6 +88,7 @@ typedef struct vaesgcm_ctx_t {
 
 	void* 		   ax_area;
 	int			   ax_fd; 
+	struct timespec*		accel_time;
 }
 __attribute__((aligned(64))) vaesgcm_ctx;
 # pragma pack(pop)
