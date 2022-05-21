@@ -979,8 +979,12 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 		DEBUG("ENCRYPT MEMCPY\n");
 
 		/*perform copy to axdimm emulation char dev*/
+		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
+		_mm_mfence();
+		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
+		_mm_mfence();
 		out = memcpy((void *)qctx->ax_area, (void *)in, message_len);
-		nanosleep(qctx->accel_time, NULL);
+		/*nanosleep(qctx->accel_time, NULL);*/
         qctx->tag_set = 1;
     } else {
 	    /*decrypt*/
@@ -992,8 +996,12 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 		* This buffer is being passed to application -- must ensure data is ready (accelerator finished processing)
 		* wait for ACCEL_TIME seconds before returning results
 		*/
+		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
+		_mm_mfence();
+		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
+		_mm_mfence();
 		out = memcpy((void *)qctx->ax_area, (void *)in, message_len);
-		nanosleep(qctx->accel_time, NULL);
+		/*nanosleep(qctx->accel_time, NULL);
 		if ( ( out = memcpy((void *)qctx->ax_area, (void *)in, message_len)) == NULL )
 		{
 			WARN("ctx = %p, nig = %, GCM TAG Verfication Failed\n", ctx, nid);
