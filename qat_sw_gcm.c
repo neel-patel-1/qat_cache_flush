@@ -975,66 +975,56 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 
     if (enc) {
         /* Encrypt the payload */
-		/*FLUSH HERE*/
+		/* FLUSH */
 		DEBUG("ENCRYPT MEMCPY\n");
 
-		/*perform copy to axdimm emulation char dev*/
+		/*copy metadata (key and iv)*/
 		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
 		_mm_mfence();
 		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
 		_mm_mfence();
-		out = memcpy((void *)qctx->ax_area, (void *)in, message_len);
-		/*nanosleep(qctx->accel_time, NULL);*/
+	
+		/* copy msg data to axdimm in 64 byte chunks */
+		char * msg_ptr = (char *) in;
+		unsigned int lft;
+		
+		while (msg_ptr + 64 < (char *) in + message_len){
+			memcpy( (void *) qctx->ax_area, (void *) msg_ptr, 64);
+			msg_ptr += 64;
+			_mm_mfence();
+			
+		}
+		/* copy remaining data to axdimm */
+		lft = (char *) in + message_len - msg_ptr;
+		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
+		_mm_mfence();
+		/* pass output buffer back to openssl*/
+		out = (void *)qctx->ax_area;
         qctx->tag_set = 1;
     } else {
-	    /*decrypt*/
-		/*FLUSH HERE*/
-		DEBUG("DECRYPT MEMCPY\n");
-
-		/**
-		* Memory copy implicit request to accelerator, assume tag verification occurs on encrypted plaintext
-		* This buffer is being passed to application -- must ensure data is ready (accelerator finished processing)
-		* wait for ACCEL_TIME seconds before returning results
-		*/
+		/*copy metadata (key and iv)*/
 		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
 		_mm_mfence();
 		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
 		_mm_mfence();
-		out = memcpy((void *)qctx->ax_area, (void *)in, message_len);
-		/*nanosleep(qctx->accel_time, NULL);
-		if ( ( out = memcpy((void *)qctx->ax_area, (void *)in, message_len)) == NULL )
-		{
-			WARN("ctx = %p, nig = %, GCM TAG Verfication Failed\n", ctx, nid);
-			return -1;
+	
+		/* copy msg data to axdimm in 64 byte chunks */
+		char * msg_ptr = (char *) in;
+		unsigned int lft;
+		
+		while (msg_ptr + 64 < (char *) in + message_len){
+			memcpy( (void *) qctx->ax_area, (void *) msg_ptr, 64);
+			msg_ptr += 64;
+			_mm_mfence();
+			
 		}
-		
-
-        DUMPL("Payload Dump After - Decrypt Update",
-             (const unsigned char*)orig_payload_loc, len);
-
-		
-		/*
-        uint8_t tempTag[EVP_GCM_TLS_TAG_LEN];
-        memset(tempTag, 0, EVP_GCM_TLS_TAG_LEN);
-
-        qat_imb_aes_gcm_enc_finalize(nid, ipsec_mgr, key_data_ptr,
-                                     gcm_ctx_ptr, tempTag,
-                                     EVP_GCM_TLS_TAG_LEN);
-
-        if (memcmp(tag, tempTag, EVP_GCM_TLS_TAG_LEN) == 0) {
-            DEBUG("ctx = %p, nid = %d,GCM TAG Verification Successful\n", ctx, nid);
-        }
-
-        else {
-            WARN("ctx = %p, nid = %d, GCM TAG Verification Failed\n", ctx, nid);
-            DUMPL("Expected GCM TAG", (const unsigned char*)tag, EVP_GCM_TLS_TAG_LEN);
-            DUMPL("Computed GCM TAG", (const unsigned char*)tag, EVP_GCM_TLS_TAG_LEN);
-            DUMPL("Payload After Decrypt Finalize", (const unsigned char*)orig_payload_loc,
-                   len);
-            //QATerr(QAT_F_AES_GCM_TLS_CIPHER, QAT_R_GCM_TAG_VERIFY_FAILURE);
-            return -1;
-        }
-	    */
+		/* copy remaining data to axdimm */
+		lft = (char *) in + message_len - msg_ptr;
+		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
+		_mm_mfence();
+		/* pass output buffer back to openssl*/
+		out = (void *)qctx->ax_area;
+        qctx->tag_set = 1;
     }
 
     if (enc)
