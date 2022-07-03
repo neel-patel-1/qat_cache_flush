@@ -184,7 +184,7 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
         return 0;
     }
 	/* initialize offload copy address for offloading record encryption/decryption */
-	if ( (qctx->ax_fd = open("/dev/scullc0", O_RDWR)) < 0 ){
+	if ( (qctx->ax_fd = open("/dev/pmem0", O_RDWR)) < 0 ){
         WARN("char dev unopened\n");
         QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_CTX_NULL);
         return 0;
