@@ -978,6 +978,7 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 		/* FLUSH */
 		DEBUG("ENCRYPT MEMCPY\n");
 
+		#ifdef CPY_SERVER
 		/*copy metadata (key and iv)*/
 		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
 		_mm_mfence();
@@ -1000,8 +1001,13 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 		_mm_mfence();
 		/* pass output buffer back to openssl*/
 		out = (void *)qctx->ax_area;
+		#endif
+		#ifndef CPY_SERVER
+		out = in;
+		#endif
         qctx->tag_set = 1;
     } else {
+		#ifdef CPY_SERVER
 		/*copy metadata (key and iv)*/
 		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
 		_mm_mfence();
@@ -1024,6 +1030,10 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 		_mm_mfence();
 		/* pass output buffer back to openssl*/
 		out = (void *)qctx->ax_area;
+		#endif
+		#ifndef CPY_SERVER
+		out = in;
+		#endif
         qctx->tag_set = 1;
     }
 
