@@ -128,6 +128,24 @@ static int qat_check_gcm_nid(int nid)
 
 #endif
 
+/*SMARTDIMM CONFIGS*/
+#ifndef RING_SIZE
+#define RING_SIZE (512 * 1024)
+#endif
+
+/* SmartDIMM Shadow Ring Buffer */
+struct shadow_buf {
+	struct shadow_buf * prev_buf;
+	void * addr;
+	unsigned int len;
+};
+
+/* SmartDIMM bookkeeping */
+pthread_mutex_t ctr_lock;
+struct shadow_buf * tail = NULL;
+unsigned int ring_space = RING_SIZE;
+
+
 #ifdef ENABLE_QAT_SW_GCM
 /******************************************************************************
  * function:
@@ -190,11 +208,6 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
         return 0;
 	}
 	qctx->ax_area = mmap(NULL, 16 * 1024, PROT_READ|PROT_WRITE, MAP_SHARED, qctx->ax_fd, 0);
-
-	/* initialize accelerator wait time for offloading record encryption in blocking synchronous case */
-	qctx->accel_time = (struct timespec *)OPENSSL_zalloc(sizeof(struct timespec));
-	qctx->accel_time->tv_sec=0;
-	qctx->accel_time->tv_nsec=500;
 
     /* If a key is set and a tag has already been calculated
      * this cipher ctx is being reused, so zero the gcm ctx and tag state variables */
@@ -974,11 +987,40 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
     tag = orig_payload_loc + tag_offset;
 
     if (enc) {
-        /* Encrypt the payload */
-		/* FLUSH */
-		DEBUG("ENCRYPT MEMCPY\n");
-
 		#ifdef CPY_SERVER
+		DEBUG("COMPCPY\n");
+
+		//pthread_mutex_lock(&ctr_lock);
+		/* RECYCLE */
+		if ( ring_space < message_len )
+		{
+			/* -- move tail pointer back by sending another write to the SmartDIMM accelerated*/
+			if (tail == NULL)
+				goto rbuf_free;
+
+			uint8_t tec = *(uint8_t *)(tail.addr); /* check first byte of addr for accel complete */
+			if ( tec )
+				tec += 1;
+
+			memset(tail.addr, 0, tail.len);
+			_mm_clflush( tail->addr );
+			ring_space+=tail.len;
+		}
+rbuf_free:
+		//pthread_mutex_unlock(&ctr_lock);
+		if (tail == NULL)
+			tail = (struct shadow_buf
+
+		/*COMP COPY*/
+
+		uint8_t iv_prefix = 1;
+		void * prefixed_iv=(void *)malloc(qctx->iv_len + 1);
+		memmove( (void *) prefixed_iv, (void * )&iv_prefix, 1 ); /* replace with bit shift ? */
+
+		uint8_t key_prefix = 2;
+		void * prefixed_key=(void *)malloc(qctx->iv_len + 1);
+		memmove( (void *) qctx->ax_area, (void *) &key_prefix, 1 );
+
 		/*copy metadata (key and iv)*/
 		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
 		_mm_mfence();
@@ -987,20 +1029,29 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 	
 		/* copy msg data to axdimm in 64 byte chunks */
 		char * msg_ptr = (char *) in;
+		uint64_t seq = 0;
 		unsigned int lft;
 		
-		while (msg_ptr + 64 < (char *) in + message_len){
+		while (msg_ptr + 63 < (char *) in + message_len){
 			memcpy( (void *) qctx->ax_area, (void *) msg_ptr, 64);
-			msg_ptr += 64;
-			_mm_mfence();
-			
+			msg_ptr += 63;
+			//_mm_mfence();
+			seq+=1;
 		}
 		/* copy remaining data to axdimm */
 		lft = (char *) in + message_len - msg_ptr;
 		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
-		_mm_mfence();
+		//_mm_mfence();
+
+		/*USE */
+		uint8_t tec = *(uint8_t *)(tail.addr); /* check first byte of addr for accel complete */
+		if ( tec )
+			tec += 1;
+		
 		/* pass output buffer back to openssl*/
 		out = (void *)qctx->ax_area;
+
+
 		#endif
 		#ifndef CPY_SERVER
 		out = in;

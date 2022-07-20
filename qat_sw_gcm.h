@@ -62,6 +62,9 @@
 # define vaesgcm_data(ctx) ((vaesgcm_ctx*)EVP_CIPHER_CTX_get_cipher_data(ctx))
 
 # pragma pack(push, 16)
+
+
+/* per connection context data -- added smartDIMM area for maintaining physical addresses*/
 typedef struct vaesgcm_ctx_t {
     struct gcm_key_data     key_data;
     struct gcm_context_data gcm_ctx;
