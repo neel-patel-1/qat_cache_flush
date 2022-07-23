@@ -130,8 +130,8 @@ static int qat_check_gcm_nid(int nid)
 
 /*SMARTDIMM CONFIGS*/
 #define CPY_SERVER 1
-#define ORDERED_WRITES 0
-#define LAZY_FREE 0
+#define ORDERED_WRITES 1
+#define LAZY_FREE 1
 #ifndef RING_SIZE
 #define RING_SIZE (512 * 1024)
 #endif
@@ -1008,7 +1008,7 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 		#ifdef CPY_SERVER
 		DEBUG("COMPCPY\n");
 
-		 #ifdef LAZY_FREE
+		# ifdef LAZY_FREE
 		pthread_mutex_lock(&ctr_lock);
 		/* RECYCLE */
 		if ( ring_space < message_len || cur_cons > tot_cons )
@@ -1028,7 +1028,7 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 		}
 rbuf_free:
 		pthread_mutex_unlock(&ctr_lock);
-		 #endif
+		# endif
 
 		if (tail == NULL){
 			DEBUG( "Allocating Tail Entry -- from NULL\n" );
@@ -1066,30 +1066,41 @@ rbuf_free:
 		_mm_mfence();
 	
 		/* copy msg data to axdimm in 64 byte chunks */
-		#ifdef ORDERED_WRITES
+		# ifdef ORDERED_WRITES
 		unsigned char * msg_ptr = in;
-		uint64_t seq = 0;
+		uint8_t seq = 0;
 		unsigned int lft;
 		
-		DEBUG( "COPY MESSAGE DATA TO REGISTERED ACCELERATION AREA \n" );
-		while (msg_ptr + 63 < (unsigned char *) in + message_len){
-			DEBUG ("COPY 63 byte\n");
-			memcpy( (void *) qctx->ax_area + (msg_ptr - in), (void *) msg_ptr, 64);
+		DEBUG( "START CPY MSG DATA \n" );
+		while (msg_ptr + 63 < (unsigned char *) (in + message_len)){
+			DEBUG ("COPY 63 byte %d \n", seq);
+			memcpy(qctx->ax_area + ( msg_ptr - in ),(void *) &seq, 1);
+			memcpy( (void *) qctx->ax_area + (msg_ptr - in), (void *) msg_ptr, 63);
 			_mm_clflush( qctx->ax_area + (msg_ptr - in) );
-			msg_ptr += 63;
 			_mm_mfence();
+			msg_ptr += 63;
 			seq+=1;
 		}
+		DEBUG( "CPY REMAINING MSG DATA \n" );
 		lft =  in + message_len - msg_ptr;
 		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
 		_mm_clflush( qctx->ax_area + (msg_ptr - in) );
+		DEBUG( "FLUSH REMAINING MSG DATA \n" );
 		_mm_mfence();
-		#endif
+		# else
+		memcpy( (void *) qctx->ax_area + , (void *) orig_payload_loc, message_len);
+		unsigned char * fl=qctx->ax_area;
+		while ( (unsigned char *) fl < (unsigned char *)(qctx->ax_area + message_len) ){
+			_mm_clflush(fl);
+			fl += 64;
+		}
+		# endif
 
 		/*USE */
 		uint8_t tec = *(uint8_t *)(tail->addr); /* check first byte of addr for accel complete */
 		if ( tec )
 			tec += 1;
+		DEBUG( "PASS DATA TO TLS LIB \n" );
 		out = (void *)qctx->ax_area;
 
 		#else
