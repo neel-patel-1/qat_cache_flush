@@ -129,8 +129,14 @@ static int qat_check_gcm_nid(int nid)
 #endif
 
 /*SMARTDIMM CONFIGS*/
+#define CPY_SERVER 1
+#define ORDERED_WRITES 0
+#define LAZY_FREE 0
 #ifndef RING_SIZE
 #define RING_SIZE (512 * 1024)
+#endif
+#ifndef NUM_ROWS
+#define NUM_ROWS 1024
 #endif
 
 /* SmartDIMM Shadow Ring Buffer */
@@ -144,6 +150,9 @@ struct shadow_buf {
 pthread_mutex_t ctr_lock;
 struct shadow_buf * tail = NULL;
 unsigned int ring_space = RING_SIZE;
+unsigned int cur_cons=0;
+unsigned int tot_cons=NUM_ROWS;
+unsigned long sim_off=0x100000000;
 
 
 #ifdef ENABLE_QAT_SW_GCM
@@ -202,12 +211,21 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
         return 0;
     }
 	/* initialize offload copy address for offloading record encryption/decryption */
-	if ( (qctx->ax_fd = open("/dev/pmem0", O_RDWR)) < 0 ){
+	if ( (qctx->ax_fd = open("/dev/mem", O_RDWR)) < 0 ){
         WARN("char dev unopened\n");
         QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_CTX_NULL);
         return 0;
 	}
-	qctx->ax_area = mmap(NULL, 16 * 1024, PROT_READ|PROT_WRITE, MAP_SHARED, qctx->ax_fd, 0);
+	qctx->ax_area = mmap(NULL, 16 * 1024, PROT_READ|PROT_WRITE, MAP_FILE | MAP_SHARED, qctx->ax_fd, sim_off);
+	if (qctx->ax_area == -1){
+		WARN("Could not obtain SmartDIMM mapping\n");
+		return 0;
+	}
+    DEBUG("SmartDIMM Space alloc'd: Phys:%p \n ", (void *) sim_off);
+
+	sim_off += 16 * 1024;
+	if ( sim_off > 0x8FFFFFFFF )
+		sim_off = 0x100000000 + ( sim_off % 0x8FFFFFFFF );
 
     /* If a key is set and a tag has already been calculated
      * this cipher ctx is being reused, so zero the gcm ctx and tag state variables */
@@ -990,70 +1008,91 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 		#ifdef CPY_SERVER
 		DEBUG("COMPCPY\n");
 
-		//pthread_mutex_lock(&ctr_lock);
+		 #ifdef LAZY_FREE
+		pthread_mutex_lock(&ctr_lock);
 		/* RECYCLE */
-		if ( ring_space < message_len )
+		if ( ring_space < message_len || cur_cons > tot_cons )
 		{
 			/* -- move tail pointer back by sending another write to the SmartDIMM accelerated*/
+			DEBUG( "MAKING SPACE IN RING BUF\n" );
 			if (tail == NULL)
 				goto rbuf_free;
 
-			uint8_t tec = *(uint8_t *)(tail.addr); /* check first byte of addr for accel complete */
+			uint8_t tec = *(uint8_t *)(tail->addr); /* check first byte of addr for accel complete */
 			if ( tec )
 				tec += 1;
 
-			memset(tail.addr, 0, tail.len);
+			memset(tail->addr, 0, tail->len);
 			_mm_clflush( tail->addr );
-			ring_space+=tail.len;
+			ring_space+=tail->len;
 		}
 rbuf_free:
-		//pthread_mutex_unlock(&ctr_lock);
-		if (tail == NULL)
-			tail = (struct shadow_buf
+		pthread_mutex_unlock(&ctr_lock);
+		 #endif
+
+		if (tail == NULL){
+			DEBUG( "Allocating Tail Entry -- from NULL\n" );
+			tail = (struct shadow_buf *)malloc(sizeof(struct shadow_buf));
+			tail->prev_buf=NULL;
+			tail->addr=(char *)(qctx->ax_area);
+			tail->len=message_len;
+		}else{
+			DEBUG( "Allocating Tail Entry \n" );
+			struct shadow_buf * prev = tail;
+			tail = (struct shadow_buf *)malloc(sizeof(struct shadow_buf));
+			tail->prev_buf=prev;
+			tail->addr=(char *)(qctx->ax_area);
+			tail->len=message_len;
+		}
+
 
 		/*COMP COPY*/
 
-		uint8_t iv_prefix = 1;
-		void * prefixed_iv=(void *)malloc(qctx->iv_len + 1);
+		char iv_prefix = 'A';
+		void * prefixed_iv=(void *)malloc(64);
 		memmove( (void *) prefixed_iv, (void * )&iv_prefix, 1 ); /* replace with bit shift ? */
 
-		uint8_t key_prefix = 2;
-		void * prefixed_key=(void *)malloc(qctx->iv_len + 1);
+		char key_prefix = 'B';
+		void * prefixed_key=(void *)malloc(64);
 		memmove( (void *) qctx->ax_area, (void *) &key_prefix, 1 );
 
 		/*copy metadata (key and iv)*/
+		DEBUG( "COPY CONFIG DATA TO REGISTERED ACCELERATION AREA \n" );
 		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
+		_mm_clflush( (void *) qctx->ax_area);
 		_mm_mfence();
 		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
+		_mm_clflush( (void *) qctx->ax_area);
 		_mm_mfence();
 	
 		/* copy msg data to axdimm in 64 byte chunks */
-		char * msg_ptr = (char *) in;
+		#ifdef ORDERED_WRITES
+		unsigned char * msg_ptr = in;
 		uint64_t seq = 0;
 		unsigned int lft;
 		
-		while (msg_ptr + 63 < (char *) in + message_len){
-			memcpy( (void *) qctx->ax_area, (void *) msg_ptr, 64);
+		DEBUG( "COPY MESSAGE DATA TO REGISTERED ACCELERATION AREA \n" );
+		while (msg_ptr + 63 < (unsigned char *) in + message_len){
+			DEBUG ("COPY 63 byte\n");
+			memcpy( (void *) qctx->ax_area + (msg_ptr - in), (void *) msg_ptr, 64);
+			_mm_clflush( qctx->ax_area + (msg_ptr - in) );
 			msg_ptr += 63;
-			//_mm_mfence();
+			_mm_mfence();
 			seq+=1;
 		}
-		/* copy remaining data to axdimm */
-		lft = (char *) in + message_len - msg_ptr;
+		lft =  in + message_len - msg_ptr;
 		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
-		//_mm_mfence();
+		_mm_clflush( qctx->ax_area + (msg_ptr - in) );
+		_mm_mfence();
+		#endif
 
 		/*USE */
-		uint8_t tec = *(uint8_t *)(tail.addr); /* check first byte of addr for accel complete */
+		uint8_t tec = *(uint8_t *)(tail->addr); /* check first byte of addr for accel complete */
 		if ( tec )
 			tec += 1;
-		
-		/* pass output buffer back to openssl*/
 		out = (void *)qctx->ax_area;
 
-
-		#endif
-		#ifndef CPY_SERVER
+		#else
 		out = in;
 		#endif
         qctx->tag_set = 1;
@@ -1061,8 +1100,10 @@ rbuf_free:
 		#ifdef CPY_SERVER
 		/*copy metadata (key and iv)*/
 		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
+		_mm_clflush( (void *) qctx->ax_area);
 		_mm_mfence();
 		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
+		_mm_clflush( (void *) qctx->ax_area);
 		_mm_mfence();
 	
 		/* copy msg data to axdimm in 64 byte chunks */
@@ -1071,6 +1112,7 @@ rbuf_free:
 		
 		while (msg_ptr + 64 < (char *) in + message_len){
 			memcpy( (void *) qctx->ax_area, (void *) msg_ptr, 64);
+			_mm_clflush( (void *) qctx->ax_area);
 			msg_ptr += 64;
 			_mm_mfence();
 			
@@ -1078,6 +1120,7 @@ rbuf_free:
 		/* copy remaining data to axdimm */
 		lft = (char *) in + message_len - msg_ptr;
 		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
+		_mm_clflush( (void *) qctx->ax_area);
 		_mm_mfence();
 		/* pass output buffer back to openssl*/
 		out = (void *)qctx->ax_area;
