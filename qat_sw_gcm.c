@@ -129,9 +129,33 @@ static int qat_check_gcm_nid(int nid)
 #endif
 
 /*SMARTDIMM CONFIGS*/
+/*
+
+//Confs
 #define CPY_SERVER 1
 #define ORDERED_WRITES 1
 #define LAZY_FREE 1
+#define PREF_CFG_DAT 1
+#define CACHE_FLUSH 1
+#define MEM_BAR 1
+#define MMIO_KEY 1
+*/
+
+#ifdef BASELINE
+//BASELINE_BEG
+# define CPY_SERVER 1
+# define ORDERED_WRITES 1
+# define LAZY_FREE 1
+# define CACHE_FLUSH 1
+# define MEM_BAR 1
+# define CONF_KEY 1
+//BASELINE_END
+#endif 
+
+//SCHEME_BEG
+#define BASELINE
+//SCHEME_END
+
 #ifndef RING_SIZE
 #define RING_SIZE (512 * 1024)
 #endif
@@ -217,6 +241,16 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
         return 0;
 	}
 	qctx->ax_area = mmap(NULL, 16 * 1024, PROT_READ|PROT_WRITE, MAP_FILE | MAP_SHARED, qctx->ax_fd, sim_off);
+	#ifdef CONF_KEY
+	srand ((unsigned int) time (NULL));
+	int * key = malloc(64);
+	for (int i=0; i<64/sizeof(int); i++ )
+	{
+		key[i] = rand();
+		((int *)qctx->ax_area)[i] = key[i];
+	}
+	memcpy( qctx->ax_area, key, 64 );
+	#endif
 	if (qctx->ax_area == -1){
 		WARN("Could not obtain SmartDIMM mapping\n");
 		return 0;
@@ -1023,7 +1057,9 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 				tec += 1;
 
 			memset(tail->addr, 0, tail->len);
+			#  ifdef CACHE_FLUSH
 			_mm_clflush( tail->addr );
+			#  endif
 			ring_space+=tail->len;
 		}
 rbuf_free:
@@ -1048,6 +1084,7 @@ rbuf_free:
 
 		/*COMP COPY*/
 
+		# ifdef PREF_CFG_DAT
 		char iv_prefix = 'A';
 		void * prefixed_iv=(void *)malloc(64);
 		memmove( (void *) prefixed_iv, (void * )&iv_prefix, 1 ); /* replace with bit shift ? */
@@ -1055,15 +1092,24 @@ rbuf_free:
 		char key_prefix = 'B';
 		void * prefixed_key=(void *)malloc(64);
 		memmove( (void *) qctx->ax_area, (void *) &key_prefix, 1 );
+		# endif
 
 		/*copy metadata (key and iv)*/
 		DEBUG( "COPY CONFIG DATA TO REGISTERED ACCELERATION AREA \n" );
 		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
+		# ifdef CACHE_FLUSH
 		_mm_clflush( (void *) qctx->ax_area);
+		# endif
+		#  ifdef MEM_BAR
 		_mm_mfence();
+		#  endif
 		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
+		# ifdef CACHE_FLUSH
 		_mm_clflush( (void *) qctx->ax_area);
+		# endif
+		#  ifdef MEM_BAR
 		_mm_mfence();
+		#  endif
 	
 		/* copy msg data to axdimm in 64 byte chunks */
 		# ifdef ORDERED_WRITES
@@ -1076,22 +1122,32 @@ rbuf_free:
 			DEBUG ("COPY 63 byte %d \n", seq);
 			memcpy(qctx->ax_area + ( msg_ptr - in ),(void *) &seq, 1);
 			memcpy( (void *) qctx->ax_area + (msg_ptr - in), (void *) msg_ptr, 63);
+			#  ifdef CACHE_FLUSH
 			_mm_clflush( qctx->ax_area + (msg_ptr - in) );
+			#  endif
+			#  ifdef MEM_BAR
 			_mm_mfence();
+			#  endif
 			msg_ptr += 63;
 			seq+=1;
 		}
 		DEBUG( "CPY REMAINING MSG DATA \n" );
 		lft =  in + message_len - msg_ptr;
 		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
+		#  ifdef CACHE_FLUSH
 		_mm_clflush( qctx->ax_area + (msg_ptr - in) );
+		#  endif
 		DEBUG( "FLUSH REMAINING MSG DATA \n" );
+		#  ifdef MEM_BAR
 		_mm_mfence();
+		#  endif
 		# else
-		memcpy( (void *) qctx->ax_area + , (void *) orig_payload_loc, message_len);
+		memcpy( (void *) qctx->ax_area , (void *) orig_payload_loc, message_len);
 		unsigned char * fl=qctx->ax_area;
 		while ( (unsigned char *) fl < (unsigned char *)(qctx->ax_area + message_len) ){
+			#  ifdef CACHE_FLUSH
 			_mm_clflush(fl);
+			#  endif
 			fl += 64;
 		}
 		# endif
