@@ -138,23 +138,27 @@ static int qat_check_gcm_nid(int nid)
 #define PREF_CFG_DAT 1
 #define CACHE_FLUSH 1
 #define MEM_BAR 1
-#define MMIO_KEY 1
+#define CONF_KEY 1
 */
 
-#ifdef BASELINE
-//BASELINE_BEG
-# define CPY_SERVER 1
-# define ORDERED_WRITES 1
-# define LAZY_FREE 1
-# define CACHE_FLUSH 1
-# define MEM_BAR 1
-# define CONF_KEY 1
-//BASELINE_END
-#endif 
 
 //SCHEME_BEG
 #define BASELINE
 //SCHEME_END
+
+#ifdef BASELINE
+//BASELINE_BEG
+# define MEM_BAR
+# define CPY_SERVER
+# define ORDERED_WRITES
+//# define LAZY_FREE
+# define PREF_CFG_DAT
+# define CONF_KEY
+//BASELINE_END
+#endif 
+
+//Reqs
+# define CACHE_FLUSH /* can we replace these with non-temporal stores*/
 
 #ifndef RING_SIZE
 #define RING_SIZE (512 * 1024)
@@ -249,6 +253,7 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
 		key[i] = rand();
 		((int *)qctx->ax_area)[i] = key[i];
 	}
+	DEBUG( "MMIO SmartDIMM Key write\n" );
 	memcpy( qctx->ax_area, key, 64 );
 	#endif
 	if (qctx->ax_area == -1){
@@ -1085,6 +1090,7 @@ rbuf_free:
 		/*COMP COPY*/
 
 		# ifdef PREF_CFG_DAT
+		/* Can we replace this with _mm_stream non-temporal write-combining instructions to enforce writing the prefixed IV in a single cache line-sized write */
 		char iv_prefix = 'A';
 		void * prefixed_iv=(void *)malloc(64);
 		memmove( (void *) prefixed_iv, (void * )&iv_prefix, 1 ); /* replace with bit shift ? */
