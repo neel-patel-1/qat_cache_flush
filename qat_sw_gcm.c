@@ -139,11 +139,15 @@ static int qat_check_gcm_nid(int nid)
 #define CACHE_FLUSH 1
 #define MEM_BAR 1
 #define CONF_KEY 1
+#define MMAP_UNCACHE 1
+
+#define NON_TEMP_WRITES
 */
 
 
 //SCHEME_BEG
 #define BASELINE
+//#define USE_AXDIMM
 //SCHEME_END
 
 #ifdef BASELINE
@@ -151,7 +155,7 @@ static int qat_check_gcm_nid(int nid)
 # define MEM_BAR
 # define CPY_SERVER
 # define ORDERED_WRITES
-//# define LAZY_FREE
+# define LAZY_FREE
 # define PREF_CFG_DAT
 # define CONF_KEY
 //BASELINE_END
@@ -159,12 +163,22 @@ static int qat_check_gcm_nid(int nid)
 
 //Reqs
 # define CACHE_FLUSH /* can we replace these with non-temporal stores*/
+//# define MMAP_UNCACHE
 
 #ifndef RING_SIZE
 #define RING_SIZE (512 * 1024)
 #endif
 #ifndef NUM_ROWS
 #define NUM_ROWS 1024
+#endif
+
+#ifdef USE_AXDIMM
+# define MEM_MIN 0x100000000
+//# define MEM_MAX 0x8ffffffff
+# define MEM_MAX 0x1FFFFFFFF
+#else
+# define MEM_MIN 0x900000000
+# define MEM_MAX 0x9ffffffff
 #endif
 
 /* SmartDIMM Shadow Ring Buffer */
@@ -180,7 +194,7 @@ struct shadow_buf * tail = NULL;
 unsigned int ring_space = RING_SIZE;
 unsigned int cur_cons=0;
 unsigned int tot_cons=NUM_ROWS;
-unsigned long sim_off=0x100000000;
+unsigned long sim_off=MEM_MIN;
 
 
 #ifdef ENABLE_QAT_SW_GCM
@@ -239,12 +253,21 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
         return 0;
     }
 	/* initialize offload copy address for offloading record encryption/decryption */
+	#ifdef MMAP_UNCACHE
+	if ( (qctx->ax_fd = open("/dev/mem", O_SYNC | O_RDWR)) < 0 ){
+        WARN("char dev unopened\n");
+        QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_CTX_NULL);
+        return 0;
+	}
+	#else
 	if ( (qctx->ax_fd = open("/dev/mem", O_RDWR)) < 0 ){
         WARN("char dev unopened\n");
         QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_CTX_NULL);
         return 0;
 	}
-	qctx->ax_area = mmap(NULL, 16 * 1024, PROT_READ|PROT_WRITE, MAP_FILE | MAP_SHARED, qctx->ax_fd, sim_off);
+	#endif
+
+	qctx->ax_area = mmap(NULL, 16 * 1024, PROT_READ|PROT_WRITE,  MAP_FILE | MAP_SHARED, qctx->ax_fd, sim_off);
 	#ifdef CONF_KEY
 	srand ((unsigned int) time (NULL));
 	int * key = malloc(64);
@@ -263,8 +286,8 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
     DEBUG("SmartDIMM Space alloc'd: Phys:%p \n ", (void *) sim_off);
 
 	sim_off += 16 * 1024;
-	if ( sim_off > 0x8FFFFFFFF )
-		sim_off = 0x100000000 + ( sim_off % 0x8FFFFFFFF );
+	if ( sim_off > MEM_MAX )
+		sim_off = MEM_MIN + ( sim_off % MEM_MAX );
 
     /* If a key is set and a tag has already been calculated
      * this cipher ctx is being reused, so zero the gcm ctx and tag state variables */
