@@ -147,7 +147,7 @@ static int qat_check_gcm_nid(int nid)
 
 //SCHEME_BEG
 #define BASELINE
-//#define USE_AXDIMM
+#define USE_AXDIMM
 //SCHEME_END
 
 #ifdef BASELINE
@@ -163,6 +163,8 @@ static int qat_check_gcm_nid(int nid)
 
 //Reqs
 # define CACHE_FLUSH /* can we replace these with non-temporal stores*/
+# define RAND_FLUSH_INS
+# define fl_ratio 9
 //# define MMAP_UNCACHE
 
 #ifndef RING_SIZE
@@ -1086,7 +1088,10 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 
 			memset(tail->addr, 0, tail->len);
 			#  ifdef CACHE_FLUSH
-			_mm_clflush( tail->addr );
+			#   ifdef RAND_FLUSH_INS
+			if ( rand() % 10  < fl_ratio )
+			#   endif
+				_mm_clflush( tail->addr );
 			#  endif
 			ring_space+=tail->len;
 		}
@@ -1127,14 +1132,20 @@ rbuf_free:
 		DEBUG( "COPY CONFIG DATA TO REGISTERED ACCELERATION AREA \n" );
 		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
 		# ifdef CACHE_FLUSH
-		_mm_clflush( (void *) qctx->ax_area);
+		#  ifdef RAND_FLUSH_INS
+		if ( rand() % 10  < fl_ratio )
+		#  endif
+			_mm_clflush( (void *) qctx->ax_area);
 		# endif
 		#  ifdef MEM_BAR
 		_mm_mfence();
 		#  endif
 		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
 		# ifdef CACHE_FLUSH
-		_mm_clflush( (void *) qctx->ax_area);
+		#  ifdef RAND_FLUSH_INS
+		if ( rand() % 10  < fl_ratio )
+		#  endif
+			_mm_clflush( (void *) qctx->ax_area);
 		# endif
 		#  ifdef MEM_BAR
 		_mm_mfence();
@@ -1152,7 +1163,10 @@ rbuf_free:
 			memcpy(qctx->ax_area + ( msg_ptr - in ),(void *) &seq, 1);
 			memcpy( (void *) qctx->ax_area + (msg_ptr - in), (void *) msg_ptr, 63);
 			#  ifdef CACHE_FLUSH
-			_mm_clflush( qctx->ax_area + (msg_ptr - in) );
+			#   ifdef RAND_FLUSH_INS
+			if ( rand() % 10  < fl_ratio )
+			#   endif
+				_mm_clflush( qctx->ax_area + (msg_ptr - in) );
 			#  endif
 			#  ifdef MEM_BAR
 			_mm_mfence();
@@ -1164,7 +1178,10 @@ rbuf_free:
 		lft =  in + message_len - msg_ptr;
 		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
 		#  ifdef CACHE_FLUSH
-		_mm_clflush( qctx->ax_area + (msg_ptr - in) );
+		#   ifdef RAND_FLUSH_INS
+		if ( rand() % 10  < fl_ratio )
+		#   endif
+			_mm_clflush( qctx->ax_area + (msg_ptr - in) );
 		#  endif
 		DEBUG( "FLUSH REMAINING MSG DATA \n" );
 		#  ifdef MEM_BAR
@@ -1175,7 +1192,10 @@ rbuf_free:
 		unsigned char * fl=qctx->ax_area;
 		while ( (unsigned char *) fl < (unsigned char *)(qctx->ax_area + message_len) ){
 			#  ifdef CACHE_FLUSH
-			_mm_clflush(fl);
+			#   ifdef RAND_FLUSH_INS
+			if ( rand() % 10  < fl_ratio )
+			#   endif
+				_mm_clflush(fl);
 			#  endif
 			fl += 64;
 		}
