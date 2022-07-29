@@ -163,7 +163,6 @@ static int qat_check_gcm_nid(int nid)
 
 //Reqs
 # define CACHE_FLUSH /* can we replace these with non-temporal stores*/
-# define RAND_FLUSH_INS
 # define fl_ratio 9
 //# define MMAP_UNCACHE
 
