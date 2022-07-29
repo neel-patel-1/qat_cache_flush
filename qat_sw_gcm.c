@@ -153,7 +153,7 @@ static int qat_check_gcm_nid(int nid)
 #ifdef BASELINE
 //BASELINE_BEG
 # define MEM_BAR
-# define CPY_SERVER
+//# define CPY_SERVER
 # define ORDERED_WRITES
 # define LAZY_FREE
 # define PREF_CFG_DAT
@@ -164,6 +164,7 @@ static int qat_check_gcm_nid(int nid)
 //Reqs
 # define CACHE_FLUSH /* can we replace these with non-temporal stores*/
 # define fl_ratio 9
+//# define NO_PAT_NO_STRICT_DEVMEM
 //# define MMAP_UNCACHE
 
 #ifndef RING_SIZE
@@ -255,22 +256,28 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
         return 0;
     }
 	/* initialize offload copy address for offloading record encryption/decryption */
-	#ifdef MMAP_UNCACHE
+    DEBUG("Opening /dev/mem fd\n");
+	#if defined (MMAP_UNCACHE) && defined(NO_PAT_NO_STRICT_DEVMEM)
 	if ( (qctx->ax_fd = open("/dev/mem", O_SYNC | O_RDWR)) < 0 ){
         WARN("char dev unopened\n");
         QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_CTX_NULL);
         return 0;
 	}
 	#else
+	# ifdef NO_PAT_NO_STRICT_DEVMEM
 	if ( (qctx->ax_fd = open("/dev/mem", O_RDWR)) < 0 ){
         WARN("char dev unopened\n");
         QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_CTX_NULL);
         return 0;
 	}
+	# endif
 	#endif
 
+    DEBUG("MMapping /dev/mem fd\n");
+	#ifdef NO_PAT_NO_STRICT_DEVMEM
 	qctx->ax_area = mmap(NULL, 16 * 1024, PROT_READ|PROT_WRITE,  MAP_FILE | MAP_SHARED, qctx->ax_fd, sim_off);
-	#ifdef CONF_KEY
+
+	# ifdef CONF_KEY
 	srand ((unsigned int) time (NULL));
 	int * key = malloc(64);
 	for (int i=0; i<64/sizeof(int); i++ )
@@ -280,7 +287,8 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
 	}
 	DEBUG( "MMIO SmartDIMM Key write\n" );
 	memcpy( qctx->ax_area, key, 64 );
-	#endif
+	# endif
+	#endif 
 	if (qctx->ax_area == -1){
 		WARN("Could not obtain SmartDIMM mapping\n");
 		return 0;
