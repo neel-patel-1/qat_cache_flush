@@ -153,17 +153,18 @@ static int qat_check_gcm_nid(int nid)
 #ifdef BASELINE
 //BASELINE_BEG
 # define MEM_BAR
-//# define CPY_SERVER
-# define ORDERED_WRITES
+# define CPY_SERVER
+//# define ORDERED_WRITES
 # define LAZY_FREE
-# define PREF_CFG_DAT
+//# define PREF_CFG_DAT
 # define CONF_KEY
 //BASELINE_END
 #endif 
 
 //Reqs
-# define CACHE_FLUSH /* can we replace these with non-temporal stores*/
-# define fl_ratio 9
+//# define CACHE_FLUSH /* can we replace these with non-temporal stores*/
+# define fl_ratio 0
+# define MALLOC_SIM
 //# define NO_PAT_NO_STRICT_DEVMEM
 //# define MMAP_UNCACHE
 
@@ -289,6 +290,10 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
 	memcpy( qctx->ax_area, key, 64 );
 	# endif
 	#endif 
+	#ifdef MALLOC_SIM
+	qctx->ax_area = malloc( 16 * 1024 );
+	#endif
+
 	if (qctx->ax_area == -1){
 		WARN("Could not obtain SmartDIMM mapping\n");
 		return 0;
