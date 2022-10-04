@@ -156,9 +156,9 @@ static int qat_check_gcm_nid(int nid)
 #ifdef BASELINE
 #define CPY_SERVER
 #define ORDERED_WRITES 1
-//#define CACHE_FLUSH 1
+#define CACHE_FLUSH 1
+#define fl_ratio 0
 //#define MEM_BAR
-//#define fl_ratio 0
 #define MALLOC_SIM 1
 //BASELINE_END
 #endif 
