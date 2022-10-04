@@ -141,7 +141,7 @@ static int qat_check_gcm_nid(int nid)
 #define CONF_KEY 1
 //
 //# define NO_PAT_NO_STRICT_DEVMEM
-//# define MMAP_UNCACHE
+//# define MMAP_UNCACHE // BAD
 
 # define fl_ratio 5
 # define MALLOC_SIM 1
@@ -154,27 +154,14 @@ static int qat_check_gcm_nid(int nid)
 //SCHEME_END
 
 #ifdef BASELINE
-//BASELINE_BEG
-# define CPY_SERVER
-#define ORDERED_WRITES 1
-//#define LAZY_FREE 1
-#define CACHE_FLUSH 1
-#define MEM_BAR
-//# define ORDERED_WRITES
-/*
-# define LAZY_FREE
-# define PREF_CFG_DAT
-# define CONF_KEY
-*/
+#define CPY_SERVER
+//#define ORDERED_WRITES 1
+//#define CACHE_FLUSH 1
+//#define MEM_BAR
+//#define fl_ratio 0
+#define MALLOC_SIM 1
 //BASELINE_END
 #endif 
-
-//Reqs
-//# define CACHE_FLUSH 1/* can we replace these with non-temporal stores*/
-# define fl_ratio 5
-# define MALLOC_SIM 1
-//# define NO_PAT_NO_STRICT_DEVMEM
-//# define MMAP_UNCACHE
 
 #ifndef RING_SIZE
 #define RING_SIZE (512 * 1024)
