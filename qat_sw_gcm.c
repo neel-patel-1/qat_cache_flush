@@ -153,6 +153,9 @@ static int qat_check_gcm_nid(int nid)
 #ifdef BASELINE
 //BASELINE_BEG
 # define CPY_SERVER
+#define ORDERED_WRITES 1
+#define LAZY_FREE 1
+#define CACHE_FLUSH 1
 //# define MEM_BAR
 //# define ORDERED_WRITES
 /*
@@ -165,7 +168,7 @@ static int qat_check_gcm_nid(int nid)
 
 //Reqs
 //# define CACHE_FLUSH 1/* can we replace these with non-temporal stores*/
-# define fl_ratio 7
+# define fl_ratio 5
 # define MALLOC_SIM 1
 //# define NO_PAT_NO_STRICT_DEVMEM
 //# define MMAP_UNCACHE
@@ -1095,7 +1098,7 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 			/* -- move tail pointer back by sending another write to the SmartDIMM accelerated*/
 			DEBUG( "MAKING SPACE IN RING BUF\n" );
 			if (tail == NULL)
-				goto rbuf_free;
+				goto rbuf_free_dec;
 
 			uint8_t tec = *(uint8_t *)(tail->addr); /* check first byte of addr for accel complete */
 			if ( tec )
@@ -1111,7 +1114,7 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 			#  endif
 			ring_space+=tail->len;
 		}
-rbuf_free:
+rbuf_free_dec:
 		pthread_mutex_unlock(&ctr_lock);
 		# endif
 
