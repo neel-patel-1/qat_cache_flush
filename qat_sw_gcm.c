@@ -129,9 +129,9 @@ static int qat_check_gcm_nid(int nid)
 #endif
 
 /*SMARTDIMM CONFIGS*/
-/*
 
 //Confs
+/*
 #define CPY_SERVER 1
 #define ORDERED_WRITES 1
 #define LAZY_FREE 1
@@ -155,16 +155,18 @@ static int qat_check_gcm_nid(int nid)
 # define MEM_BAR
 # define CPY_SERVER
 //# define ORDERED_WRITES
+/*
 # define LAZY_FREE
-//# define PREF_CFG_DAT
+# define PREF_CFG_DAT
 # define CONF_KEY
+*/
 //BASELINE_END
 #endif 
 
 //Reqs
-//# define CACHE_FLUSH /* can we replace these with non-temporal stores*/
-# define fl_ratio 0
-# define MALLOC_SIM
+# define CACHE_FLUSH 1/* can we replace these with non-temporal stores*/
+# define fl_ratio 10
+# define MALLOC_SIM 1
 //# define NO_PAT_NO_STRICT_DEVMEM
 //# define MMAP_UNCACHE
 
