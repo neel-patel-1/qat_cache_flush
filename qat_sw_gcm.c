@@ -152,8 +152,8 @@ static int qat_check_gcm_nid(int nid)
 
 #ifdef BASELINE
 //BASELINE_BEG
-# define MEM_BAR
 # define CPY_SERVER
+//# define MEM_BAR
 //# define ORDERED_WRITES
 /*
 # define LAZY_FREE
@@ -164,8 +164,8 @@ static int qat_check_gcm_nid(int nid)
 #endif 
 
 //Reqs
-# define CACHE_FLUSH 1/* can we replace these with non-temporal stores*/
-# define fl_ratio 10
+//# define CACHE_FLUSH 1/* can we replace these with non-temporal stores*/
+# define fl_ratio 7
 # define MALLOC_SIM 1
 //# define NO_PAT_NO_STRICT_DEVMEM
 //# define MMAP_UNCACHE
@@ -1234,38 +1234,156 @@ rbuf_free:
 		#endif
         qctx->tag_set = 1;
     } else {
-		#ifdef CPY_SERVER
+#ifdef CPY_SERVER
+		DEBUG("COMPCPY\n");
+
+		# ifdef LAZY_FREE
+		pthread_mutex_lock(&ctr_lock);
+		/* RECYCLE */
+		if ( ring_space < message_len || cur_cons > tot_cons )
+		{
+			/* -- move tail pointer back by sending another write to the SmartDIMM accelerated*/
+			DEBUG( "MAKING SPACE IN RING BUF\n" );
+			if (tail == NULL)
+				goto rbuf_free;
+
+			uint8_t tec = *(uint8_t *)(tail->addr); /* check first byte of addr for accel complete */
+			if ( tec )
+				tec += 1;
+
+			memset(tail->addr, 0, tail->len);
+			#  ifdef CACHE_FLUSH
+			if ( fl_ctr % 10  < fl_ratio )
+			{
+				_mm_clflush( tail->addr );
+				fl_ctr++;
+			}
+			#  endif
+			ring_space+=tail->len;
+		}
+rbuf_free:
+		pthread_mutex_unlock(&ctr_lock);
+		# endif
+
+		if (tail == NULL){
+			DEBUG( "Allocating Tail Entry -- from NULL\n" );
+			tail = (struct shadow_buf *)malloc(sizeof(struct shadow_buf));
+			tail->prev_buf=NULL;
+			tail->addr=(char *)(qctx->ax_area);
+			tail->len=message_len;
+		}else{
+			DEBUG( "Allocating Tail Entry \n" );
+			struct shadow_buf * prev = tail;
+			tail = (struct shadow_buf *)malloc(sizeof(struct shadow_buf));
+			tail->prev_buf=prev;
+			tail->addr=(char *)(qctx->ax_area);
+			tail->len=message_len;
+		}
+
+
+		/*COMP COPY*/
+
+		# ifdef PREF_CFG_DAT
+		/* Can we replace this with _mm_stream non-temporal write-combining instructions to enforce writing the prefixed IV in a single cache line-sized write */
+		char iv_prefix = 'A';
+		void * prefixed_iv=(void *)malloc(64);
+		memmove( (void *) prefixed_iv, (void * )&iv_prefix, 1 ); /* replace with bit shift ? */
+
+		char key_prefix = 'B';
+		void * prefixed_key=(void *)malloc(64);
+		memmove( (void *) qctx->ax_area, (void *) &key_prefix, 1 );
+		# endif
+
 		/*copy metadata (key and iv)*/
+		DEBUG( "COPY CONFIG DATA TO REGISTERED ACCELERATION AREA \n" );
 		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
-		_mm_clflush( (void *) qctx->ax_area);
+		# ifdef CACHE_FLUSH
+		if ( fl_ctr % 10  < fl_ratio )
+		{
+			_mm_clflush( (void *) qctx->ax_area);
+			fl_ctr++;
+		}
+		# endif
+		#  ifdef MEM_BAR
 		_mm_mfence();
+		#  endif
 		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
-		_mm_clflush( (void *) qctx->ax_area);
+		# ifdef CACHE_FLUSH
+		if ( fl_ctr % 10  < fl_ratio )
+		{
+			_mm_clflush( (void *) qctx->ax_area);
+			fl_ctr++;
+		}
+		# endif
+		#  ifdef MEM_BAR
 		_mm_mfence();
+		#  endif
 	
 		/* copy msg data to axdimm in 64 byte chunks */
-		char * msg_ptr = (char *) in;
+		# ifdef ORDERED_WRITES
+		unsigned char * msg_ptr = in;
+		uint8_t seq = 0;
 		unsigned int lft;
 		
-		while (msg_ptr + 64 < (char *) in + message_len){
-			memcpy( (void *) qctx->ax_area, (void *) msg_ptr, 64);
-			_mm_clflush( (void *) qctx->ax_area);
-			msg_ptr += 64;
+		DEBUG( "START CPY MSG DATA \n" );
+		while (msg_ptr + 63 < (unsigned char *) (in + message_len)){
+			DEBUG ("COPY 63 byte %d \n", seq);
+			memcpy(qctx->ax_area + ( msg_ptr - in ),(void *) &seq, 1);
+			memcpy( (void *) qctx->ax_area + (msg_ptr - in), (void *) msg_ptr, 63);
+			#  ifdef CACHE_FLUSH
+			if ( fl_ctr % 10  < fl_ratio )
+			{
+				_mm_clflush( qctx->ax_area + (msg_ptr - in) );
+				fl_ctr++;
+			}
+			#  endif
+			#  ifdef MEM_BAR
 			_mm_mfence();
-			
+			#  endif
+			msg_ptr += 63;
+			seq+=1;
 		}
-		/* copy remaining data to axdimm */
-		lft = (char *) in + message_len - msg_ptr;
+		DEBUG( "CPY REMAINING MSG DATA \n" );
+		lft =  in + message_len - msg_ptr;
 		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
-		_mm_clflush( (void *) qctx->ax_area);
+		#  ifdef CACHE_FLUSH
+		if ( fl_ctr % 10  < fl_ratio )
+		{
+			_mm_clflush( qctx->ax_area + (msg_ptr - in) );
+			fl_ctr++;
+		}
+		#  endif
+		DEBUG( "FLUSH REMAINING MSG DATA \n" );
+		#  ifdef MEM_BAR
 		_mm_mfence();
-		/* pass output buffer back to openssl*/
+		#  endif
+		# else
+		memcpy( (void *) qctx->ax_area , (void *) orig_payload_loc, message_len);
+		unsigned char * fl=qctx->ax_area;
+		while ( (unsigned char *) fl < (unsigned char *)(qctx->ax_area + message_len) ){
+			#  ifdef CACHE_FLUSH
+			if ( fl_ctr % 10  < fl_ratio )
+			{
+				_mm_clflush( fl );
+				fl_ctr++;
+			}
+			#  endif
+			fl += 64;
+		}
+		# endif
+
+		/*USE */
+		uint8_t tec = *(uint8_t *)(tail->addr); /* check first byte of addr for accel complete */
+		if ( tec )
+			tec += 1;
+		DEBUG( "PASS DATA TO TLS LIB \n" );
 		out = (void *)qctx->ax_area;
-		#endif
-		#ifndef CPY_SERVER
+
+		#else
 		out = in;
 		#endif
         qctx->tag_set = 1;
+
     }
 
     if (enc)
