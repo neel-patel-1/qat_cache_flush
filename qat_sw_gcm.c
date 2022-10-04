@@ -157,7 +157,7 @@ static int qat_check_gcm_nid(int nid)
 //BASELINE_BEG
 # define CPY_SERVER
 #define ORDERED_WRITES 1
-#define LAZY_FREE 1
+//#define LAZY_FREE 1
 #define CACHE_FLUSH 1
 #define MEM_BAR
 //# define ORDERED_WRITES
