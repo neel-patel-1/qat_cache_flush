@@ -139,9 +139,12 @@ static int qat_check_gcm_nid(int nid)
 #define CACHE_FLUSH 1
 #define MEM_BAR 1
 #define CONF_KEY 1
-#define MMAP_UNCACHE 1
+//
+//# define NO_PAT_NO_STRICT_DEVMEM
+//# define MMAP_UNCACHE
 
-#define NON_TEMP_WRITES
+# define fl_ratio 5
+# define MALLOC_SIM 1
 */
 
 
