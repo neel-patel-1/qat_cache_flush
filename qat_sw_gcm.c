@@ -157,10 +157,10 @@ static int qat_check_gcm_nid(int nid)
 #define CPY_SERVER
 #define ORDERED_WRITES 1
 #define CACHE_FLUSH 1
-#define fl_ratio 10
-//#define MEM_BAR
-//#define MALLOC_SIM 1
-# define NO_PAT_NO_STRICT_DEVMEM
+#define fl_ratio 2
+#define MEM_BAR
+#define MALLOC_SIM 1
+//# define NO_PAT_NO_STRICT_DEVMEM
 //BASELINE_END
 #endif 
 
