@@ -143,7 +143,7 @@ static int qat_check_gcm_nid(int nid)
 //# define NO_PAT_NO_STRICT_DEVMEM
 //# define MMAP_UNCACHE // BAD
 
-# define fl_ratio 5
+# define fl_ratio 100
 # define MALLOC_SIM 1
 */
 
@@ -157,7 +157,7 @@ static int qat_check_gcm_nid(int nid)
 #define CPY_SERVER
 #define ORDERED_WRITES 1
 #define CACHE_FLUSH 1
-#define fl_ratio 2
+#define fl_ratio 90
 #define MEM_BAR
 #define MALLOC_SIM 1
 //# define NO_PAT_NO_STRICT_DEVMEM
@@ -1097,10 +1097,10 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 
 			memset(tail->addr, 0, tail->len);
 			#  ifdef CACHE_FLUSH
-			if ( fl_ctr % 10  < fl_ratio )
+			if ( fl_ctr  < fl_ratio )
 			{
 				_mm_clflush( tail->addr );
-				fl_ctr++;
+				__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 			}
 			#  endif
 			ring_space+=tail->len;
@@ -1142,10 +1142,10 @@ rbuf_free_dec:
 		DEBUG( "COPY CONFIG DATA TO REGISTERED ACCELERATION AREA \n" );
 		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
 		# ifdef CACHE_FLUSH
-		if ( fl_ctr % 10  < fl_ratio )
+		if ( fl_ctr  < fl_ratio )
 		{
 			_mm_clflush( (void *) qctx->ax_area);
-			fl_ctr++;
+			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 		}
 		# endif
 		#  ifdef MEM_BAR
@@ -1153,10 +1153,10 @@ rbuf_free_dec:
 		#  endif
 		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
 		# ifdef CACHE_FLUSH
-		if ( fl_ctr % 10  < fl_ratio )
+		if ( fl_ctr  < fl_ratio )
 		{
 			_mm_clflush( (void *) qctx->ax_area);
-			fl_ctr++;
+			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 		}
 		# endif
 		#  ifdef MEM_BAR
@@ -1175,10 +1175,10 @@ rbuf_free_dec:
 			memcpy(qctx->ax_area + ( msg_ptr - in ),(void *) &seq, 1);
 			memcpy( (void *) qctx->ax_area + (msg_ptr - in), (void *) msg_ptr, 63);
 			#  ifdef CACHE_FLUSH
-			if ( fl_ctr % 10  < fl_ratio )
+			if ( fl_ctr  < fl_ratio )
 			{
 				_mm_clflush( qctx->ax_area + (msg_ptr - in) );
-				fl_ctr++;
+				__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 			}
 			#  endif
 			#  ifdef MEM_BAR
@@ -1191,10 +1191,10 @@ rbuf_free_dec:
 		lft =  in + message_len - msg_ptr;
 		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
 		#  ifdef CACHE_FLUSH
-		if ( fl_ctr % 10  < fl_ratio )
+		if ( fl_ctr  < fl_ratio )
 		{
 			_mm_clflush( qctx->ax_area + (msg_ptr - in) );
-			fl_ctr++;
+			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 		}
 		#  endif
 		DEBUG( "FLUSH REMAINING MSG DATA \n" );
@@ -1206,10 +1206,10 @@ rbuf_free_dec:
 		unsigned char * fl=qctx->ax_area;
 		while ( (unsigned char *) fl < (unsigned char *)(qctx->ax_area + message_len) ){
 			#  ifdef CACHE_FLUSH
-			if ( fl_ctr % 10  < fl_ratio )
+			if ( fl_ctr  < fl_ratio )
 			{
 				_mm_clflush( fl );
-				fl_ctr++;
+				__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 			}
 			#  endif
 			fl += 64;
@@ -1247,10 +1247,10 @@ rbuf_free_dec:
 
 			memset(tail->addr, 0, tail->len);
 			#  ifdef CACHE_FLUSH
-			if ( fl_ctr % 10  < fl_ratio )
+			if ( fl_ctr  < fl_ratio )
 			{
 				_mm_clflush( tail->addr );
-				fl_ctr++;
+				__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 			}
 			#  endif
 			ring_space+=tail->len;
@@ -1292,10 +1292,10 @@ rbuf_free:
 		DEBUG( "COPY CONFIG DATA TO REGISTERED ACCELERATION AREA \n" );
 		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
 		# ifdef CACHE_FLUSH
-		if ( fl_ctr % 10  < fl_ratio )
+		if ( fl_ctr  < fl_ratio )
 		{
 			_mm_clflush( (void *) qctx->ax_area);
-			fl_ctr++;
+			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 		}
 		# endif
 		#  ifdef MEM_BAR
@@ -1303,10 +1303,10 @@ rbuf_free:
 		#  endif
 		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
 		# ifdef CACHE_FLUSH
-		if ( fl_ctr % 10  < fl_ratio )
+		if ( fl_ctr  < fl_ratio )
 		{
 			_mm_clflush( (void *) qctx->ax_area);
-			fl_ctr++;
+			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 		}
 		# endif
 		#  ifdef MEM_BAR
@@ -1325,10 +1325,10 @@ rbuf_free:
 			memcpy(qctx->ax_area + ( msg_ptr - in ),(void *) &seq, 1);
 			memcpy( (void *) qctx->ax_area + (msg_ptr - in), (void *) msg_ptr, 63);
 			#  ifdef CACHE_FLUSH
-			if ( fl_ctr % 10  < fl_ratio )
+			if ( fl_ctr  < fl_ratio )
 			{
 				_mm_clflush( qctx->ax_area + (msg_ptr - in) );
-				fl_ctr++;
+				__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 			}
 			#  endif
 			#  ifdef MEM_BAR
@@ -1341,10 +1341,10 @@ rbuf_free:
 		lft =  in + message_len - msg_ptr;
 		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
 		#  ifdef CACHE_FLUSH
-		if ( fl_ctr % 10  < fl_ratio )
+		if ( fl_ctr  < fl_ratio )
 		{
 			_mm_clflush( qctx->ax_area + (msg_ptr - in) );
-			fl_ctr++;
+			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 		}
 		#  endif
 		DEBUG( "FLUSH REMAINING MSG DATA \n" );
@@ -1356,10 +1356,10 @@ rbuf_free:
 		unsigned char * fl=qctx->ax_area;
 		while ( (unsigned char *) fl < (unsigned char *)(qctx->ax_area + message_len) ){
 			#  ifdef CACHE_FLUSH
-			if ( fl_ctr % 10  < fl_ratio )
+			if ( fl_ctr  < fl_ratio )
 			{
 				_mm_clflush( fl );
-				fl_ctr++;
+				__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 			}
 			#  endif
 			fl += 64;
