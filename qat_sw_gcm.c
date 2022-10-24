@@ -931,6 +931,20 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
     tag = orig_payload_loc + tag_offset;
 
 	/* NP -- check if data is in the cache before the payload is de/encrypted */
+	/* log the start and end time of the memory access */
+	long_long start_nsec, end_nsec;
+	start_nsec = PAPI_get_real_nsec();
+	long long int t_b;
+	long long int * iter = (long long int *)in;
+
+	do{
+		t_b = *(long long int *)iter;
+		iter += sizeof( long long int );
+	}while ( iter < (long long int *)(in + message_len) );
+
+	end_nsec = PAPI_get_real_nsec();
+	t_b++;
+    DEBUG("access_time(entire_buffer):%lld len:%zu\n", end_nsec - start_nsec , message_len);
 	
     if (enc) {
         /* Encrypt the payload */
@@ -971,7 +985,8 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
             return -1;
         }
     }
-
+	/* NP -- use message toucher */
+	*(long long int *)(&out[len-64])=t_b;
     if (enc)
         return len;
     else

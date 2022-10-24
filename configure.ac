@@ -355,7 +355,7 @@ then
     if test "x$ac_cv_lib_IPSec_MB_imb_get_version" = "xyes"
     then
       AC_SUBST([cflags_qat_sw_ipsec], ["-DQAT_SW_IPSEC"])
-      AC_SUBST([QAT_SW_IPSEC_MB_LIB], ["-lIPSec_MB"])
+      AC_SUBST([QAT_SW_IPSEC_MB_LIB], ["-lIPSec_MB -lpapi" ])
     fi
     if test "x$ac_cv_lib_crypto_mb_mbx_getversion" != "xyes" -a "x$ac_cv_lib_IPSec_MB_imb_get_version" != "xyes"
     then

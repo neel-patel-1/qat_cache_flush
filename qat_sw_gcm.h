@@ -52,6 +52,7 @@
 # include <intel-ipsec-mb.h>
 
 /* NP -- cache profiling includes */
+# include <papi.h>
 
 # define VAESGCM_COMMON_CIPHER_FLAG EVP_CIPH_FLAG_DEFAULT_ASN1
 
