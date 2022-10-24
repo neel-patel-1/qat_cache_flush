@@ -930,6 +930,8 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 
     tag = orig_payload_loc + tag_offset;
 
+	/* NP -- check if data is in the cache before the payload is de/encrypted */
+	
     if (enc) {
         /* Encrypt the payload */
         qat_imb_aes_gcm_enc_update(nid, ipsec_mgr, key_data_ptr,
