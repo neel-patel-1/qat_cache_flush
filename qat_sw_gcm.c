@@ -196,6 +196,8 @@ unsigned int tot_cons=NUM_ROWS;
 unsigned long sim_off=MEM_MIN;
 unsigned int fl_ctr=0;
 
+/* cycle counting */
+int32_t empty_cycles=0;
 
 #ifdef ENABLE_QAT_SW_GCM
 /******************************************************************************
@@ -252,6 +254,8 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
         QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_QCTX_NULL);
         return 0;
     }
+	
+
 	/* initialize offload copy address for offloading record encryption/decryption */
     DEBUG("Opening /dev/mem fd\n");
 	#if defined (MMAP_UNCACHE) && defined(NO_PAT_NO_STRICT_DEVMEM)
@@ -1079,19 +1083,87 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 
 	/* NP -- check if data is in the cache before the payload is de/encrypted */
 	/* log the start and end time of the memory access */
-	long_long start_nsec, end_nsec;
-	start_nsec = PAPI_get_real_nsec();
-	long long int t_b;
+	/* check if the first byte is in the cache before the payload is de/encrypted */
+	/*
+	long long int t_b=0;
 	long long int * iter = (long long int *)in;
 
-	do{
-		t_b = *(long long int *)iter;
-		iter += sizeof( long long int );
-	}while ( iter < (long long int *)(in + message_len) );
+	long_long i_ns_s, i_ns_e;
+	i_ns_s = PAPI_get_real_cyc();
+	t_b = *( long long int *) in;
+	i_ns_e = PAPI_get_real_cyc();
 
-	end_nsec = PAPI_get_real_nsec();
-	t_b++;
-    DEBUG("access_time(entire_buffer):%lld len:%zu\n", end_nsec - start_nsec , message_len);
+	*(long long int *)(&out[len-64])=t_b;
+	DEBUG("cycles_per_access: %lld\n", i_ns_e - i_ns_s);
+	*/
+	/* NP -- measure cycle latency of l3 cache before data transmission */
+    int latencies[0x400];
+    memset(latencies, 0, sizeof(latencies));
+
+    int i;
+    int attempts = 10;
+    for (i = 0; i < attempts; i++) { // measure how much overhead we have for counting cyscles
+        int32_t cycles_used, edx, temp1, temp2;
+        asm (
+            "mfence\n\t"        // memory fence
+            "rdtsc\n\t"         // get cpu cycle count
+            "mov %%edx, %2\n\t"
+            "mov %%eax, %3\n\t"
+            "mfence\n\t"        // memory fence
+            "mfence\n\t"
+            "rdtsc\n\t"
+            "sub %2, %%edx\n\t" // substract cycle count
+            "sbb %3, %%eax"     // substract cycle count
+            : "=&a" (cycles_used)
+            , "=&d" (edx)
+            , "=&r" (temp1)
+            , "=&r" (temp2)
+            :
+            );
+        if (cycles_used < sizeof(latencies) / sizeof(*latencies))
+            latencies[cycles_used]++;
+        else 
+            latencies[sizeof(latencies) / sizeof(*latencies) - 1]++;
+
+    }
+
+    {
+        int j;
+        size_t sum = 0;
+        for (j = 0; j < sizeof(latencies) / sizeof(*latencies); j++) {
+            sum += latencies[j];
+        }
+        size_t sum2 = 0;
+        for (j = 0; j < sizeof(latencies) / sizeof(*latencies); j++) {
+            sum2 += latencies[j];
+            if (sum2 >= sum * .75) {
+                empty_cycles = j;
+                DEBUG("Empty counting takes %d cycles\n", empty_cycles);
+                break;
+            }
+        }
+    }
+	int32_t cycles_used, edx, temp1, temp2;
+    int64_t random_offset = 0;
+	random_offset = rand() % message_len;
+	asm (
+		"mfence\n\t"        // memory fence
+		"rdtsc\n\t"         // get cpu cycle count
+		"mov %%edx, %2\n\t"
+		"mov %%eax, %3\n\t"
+		"mfence\n\t"        // memory fence
+		"mov %4, %%al\n\t"  // load data
+		"mfence\n\t"
+		"rdtsc\n\t"
+		"sub %2, %%edx\n\t" // substract cycle count
+		"sbb %3, %%eax"     // substract cycle count
+		: "=&a" (cycles_used)
+		, "=&d" (edx)
+		, "=&r" (temp1)
+		, "=&r" (temp2)
+		: "m" (in[random_offset])
+		);
+	DEBUG("cycles_to_access_buffer: %d\n", cycles_used - empty_cycles);
 	
     if (enc) {
 		#ifdef CPY_SERVER
@@ -1185,9 +1257,9 @@ rbuf_free_dec:
 		uint8_t seq = 0;
 		unsigned int lft;
 		
-		DEBUG( "START CPY MSG DATA \n" );
+		//DEBUG( "START CPY MSG DATA \n" );
 		while (msg_ptr + 63 < (unsigned char *) (in + message_len)){
-			DEBUG ("COPY 63 byte %d \n", seq);
+			//DEBUG ("COPY 63 byte %d \n", seq);
 			memcpy(qctx->ax_area + ( msg_ptr - in ),(void *) &seq, 1);
 			memcpy( (void *) qctx->ax_area + (msg_ptr - in), (void *) msg_ptr, 63);
 			#  ifdef CACHE_FLUSH
@@ -1203,7 +1275,7 @@ rbuf_free_dec:
 			msg_ptr += 63;
 			seq+=1;
 		}
-		DEBUG( "CPY REMAINING MSG DATA \n" );
+		//DEBUG( "CPY REMAINING MSG DATA \n" );
 		lft =  in + message_len - msg_ptr;
 		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
 		#  ifdef CACHE_FLUSH
@@ -1213,7 +1285,7 @@ rbuf_free_dec:
 			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
 		}
 		#  endif
-		DEBUG( "FLUSH REMAINING MSG DATA \n" );
+		//DEBUG( "FLUSH REMAINING MSG DATA \n" );
 		#  ifdef MEM_BAR
 		_mm_mfence();
 		#  endif
@@ -1236,7 +1308,7 @@ rbuf_free_dec:
 		uint8_t tec = *(uint8_t *)(tail->addr); /* check first byte of addr for accel complete */
 		if ( tec )
 			tec += 1;
-		DEBUG( "PASS DATA TO TLS LIB \n" );
+		//DEBUG( "PASS DATA TO TLS LIB \n" );
 		out = (void *)qctx->ax_area;
 
 		#else
@@ -1395,8 +1467,6 @@ rbuf_free:
         qctx->tag_set = 1;
 
     }
-	/* NP -- use message toucher */
-	*(long long int *)(&out[len-64])=t_b;
     if (enc)
         return len;
     else
