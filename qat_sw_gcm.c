@@ -129,72 +129,8 @@ static int qat_check_gcm_nid(int nid)
 #endif
 
 /*SMARTDIMM CONFIGS*/
-
-//Confs
-/*
-#define CPY_SERVER 1
-#define ORDERED_WRITES 1
-#define LAZY_FREE 1
-#define PREF_CFG_DAT 1
-#define CACHE_FLUSH 1
-#define MEM_BAR 1
-#define CONF_KEY 1
-//
-//# define NO_PAT_NO_STRICT_DEVMEM
-//# define MMAP_UNCACHE // BAD
-
-# define fl_ratio 100
-# define MALLOC_SIM 1
-*/
-
-
-//SCHEME_BEG
-#define BASELINE
-#define USE_AXDIMM
-//SCHEME_END
-
-#ifdef BASELINE
-#define CPY_SERVER
-#define ORDERED_WRITES 1
-#define CACHE_FLUSH 1
-#define fl_ratio 90
-#define MEM_BAR
-#define MALLOC_SIM 1
-//# define NO_PAT_NO_STRICT_DEVMEM
-//BASELINE_END
-#endif 
-
-#ifndef RING_SIZE
-#define RING_SIZE (512 * 1024)
-#endif
-#ifndef NUM_ROWS
-#define NUM_ROWS 1024
-#endif
-
-#ifdef USE_AXDIMM
-# define MEM_MIN 0x100000000
-//# define MEM_MAX 0x8ffffffff
-# define MEM_MAX 0x1FFFFFFFF
-#else
-# define MEM_MIN 0x900000000
-# define MEM_MAX 0x9ffffffff
-#endif
-
-/* SmartDIMM Shadow Ring Buffer */
-struct shadow_buf {
-	struct shadow_buf * prev_buf;
-	void * addr;
-	unsigned int len;
-};
-
-/* SmartDIMM bookkeeping */
-pthread_mutex_t ctr_lock;
-struct shadow_buf * tail = NULL;
-unsigned int ring_space = RING_SIZE;
-unsigned int cur_cons=0;
-unsigned int tot_cons=NUM_ROWS;
-unsigned long sim_off=MEM_MIN;
-unsigned int fl_ctr=0;
+#define fl_ratio 2
+int fl_ctr;
 
 
 #ifdef ENABLE_QAT_SW_GCM
@@ -252,53 +188,6 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX*      ctx,
         QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_QCTX_NULL);
         return 0;
     }
-	/* initialize offload copy address for offloading record encryption/decryption */
-    DEBUG("Opening /dev/mem fd\n");
-	#if defined (MMAP_UNCACHE) && defined(NO_PAT_NO_STRICT_DEVMEM)
-	if ( (qctx->ax_fd = open("/dev/mem", O_SYNC | O_RDWR)) < 0 ){
-        WARN("char dev unopened\n");
-        QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_CTX_NULL);
-        return 0;
-	}
-	#else
-	# ifdef NO_PAT_NO_STRICT_DEVMEM
-	if ( (qctx->ax_fd = open("/dev/mem", O_RDWR)) < 0 ){
-        WARN("char dev unopened\n");
-        QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_CTX_NULL);
-        return 0;
-	}
-	# endif
-	#endif
-
-    DEBUG("MMapping /dev/mem fd\n");
-	#ifdef NO_PAT_NO_STRICT_DEVMEM
-	qctx->ax_area = mmap(NULL, 16 * 1024, PROT_READ|PROT_WRITE,  MAP_FILE | MAP_SHARED, qctx->ax_fd, sim_off);
-
-	# ifdef CONF_KEY
-	srand ((unsigned int) time (NULL));
-	int * key = malloc(64);
-	for (int i=0; i<64/sizeof(int); i++ )
-	{
-		key[i] = rand();
-		((int *)qctx->ax_area)[i] = key[i];
-	}
-	DEBUG( "MMIO SmartDIMM Key write\n" );
-	memcpy( qctx->ax_area, key, 64 );
-	# endif
-	#endif 
-	#ifdef MALLOC_SIM
-	qctx->ax_area = malloc( 16 * 1024 );
-	#endif
-
-	if (qctx->ax_area == -1){
-		WARN("Could not obtain SmartDIMM mapping\n");
-		return 0;
-	}
-    DEBUG("SmartDIMM Space alloc'd: Phys:%p \n ", (void *) sim_off);
-
-	sim_off += 16 * 1024;
-	if ( sim_off > MEM_MAX )
-		sim_off = MEM_MIN + ( sim_off % MEM_MAX );
 
     /* If a key is set and a tag has already been calculated
      * this cipher ctx is being reused, so zero the gcm ctx and tag state variables */
@@ -1078,304 +967,32 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
     tag = orig_payload_loc + tag_offset;
 
     if (enc) {
-		#ifdef CPY_SERVER
 		DEBUG("COMPCPY\n");
-
-		# ifdef LAZY_FREE
-		pthread_mutex_lock(&ctr_lock);
-		/* RECYCLE */
-		if ( ring_space < message_len || cur_cons > tot_cons )
-		{
-			/* -- move tail pointer back by sending another write to the SmartDIMM accelerated*/
-			DEBUG( "MAKING SPACE IN RING BUF\n" );
-			if (tail == NULL)
-				goto rbuf_free_dec;
-
-			uint8_t tec = *(uint8_t *)(tail->addr); /* check first byte of addr for accel complete */
-			if ( tec )
-				tec += 1;
-
-			memset(tail->addr, 0, tail->len);
-			#  ifdef CACHE_FLUSH
-			if ( fl_ctr  < fl_ratio )
-			{
-				_mm_clflush( tail->addr );
-				__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
-			}
-			#  endif
-			ring_space+=tail->len;
-		}
-rbuf_free_dec:
-		pthread_mutex_unlock(&ctr_lock);
-		# endif
-
-		if (tail == NULL){
-			DEBUG( "Allocating Tail Entry -- from NULL\n" );
-			tail = (struct shadow_buf *)malloc(sizeof(struct shadow_buf));
-			tail->prev_buf=NULL;
-			tail->addr=(char *)(qctx->ax_area);
-			tail->len=message_len;
-		}else{
-			DEBUG( "Allocating Tail Entry \n" );
-			struct shadow_buf * prev = tail;
-			tail = (struct shadow_buf *)malloc(sizeof(struct shadow_buf));
-			tail->prev_buf=prev;
-			tail->addr=(char *)(qctx->ax_area);
-			tail->len=message_len;
-		}
-
-
 		/*COMP COPY*/
 
-		# ifdef PREF_CFG_DAT
-		/* Can we replace this with _mm_stream non-temporal write-combining instructions to enforce writing the prefixed IV in a single cache line-sized write */
-		char iv_prefix = 'A';
-		void * prefixed_iv=(void *)malloc(64);
-		memmove( (void *) prefixed_iv, (void * )&iv_prefix, 1 ); /* replace with bit shift ? */
+		/* flush fl_% of data not already in DRAM */
+		DEBUG( "START MSG DATA FLUSH \n" );
+		for (int i=0; i < message_len / (fl_ratio); i+=64){
+			DEBUG ("FLUSH 64 byte %d \n");
+			_mm_clflush(in + i);
+		}
 
-		char key_prefix = 'B';
-		void * prefixed_key=(void *)malloc(64);
-		memmove( (void *) qctx->ax_area, (void *) &key_prefix, 1 );
-		# endif
+		out = (void *)in;
 
-		/*copy metadata (key and iv)*/
-		DEBUG( "COPY CONFIG DATA TO REGISTERED ACCELERATION AREA \n" );
-		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
-		# ifdef CACHE_FLUSH
-		if ( fl_ctr  < fl_ratio )
-		{
-			_mm_clflush( (void *) qctx->ax_area);
-			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
-		}
-		# endif
-		#  ifdef MEM_BAR
-		_mm_mfence();
-		#  endif
-		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
-		# ifdef CACHE_FLUSH
-		if ( fl_ctr  < fl_ratio )
-		{
-			_mm_clflush( (void *) qctx->ax_area);
-			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
-		}
-		# endif
-		#  ifdef MEM_BAR
-		_mm_mfence();
-		#  endif
-	
-		/* copy msg data to axdimm in 64 byte chunks */
-		# ifdef ORDERED_WRITES
-		unsigned char * msg_ptr = in;
-		uint8_t seq = 0;
-		unsigned int lft;
-		
-		DEBUG( "START CPY MSG DATA \n" );
-		while (msg_ptr + 63 < (unsigned char *) (in + message_len)){
-			DEBUG ("COPY 63 byte %d \n", seq);
-			memcpy(qctx->ax_area + ( msg_ptr - in ),(void *) &seq, 1);
-			memcpy( (void *) qctx->ax_area + (msg_ptr - in), (void *) msg_ptr, 63);
-			#  ifdef CACHE_FLUSH
-			if ( fl_ctr  < fl_ratio )
-			{
-				_mm_clflush( qctx->ax_area + (msg_ptr - in) );
-				__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
-			}
-			#  endif
-			#  ifdef MEM_BAR
-			_mm_mfence();
-			#  endif
-			msg_ptr += 63;
-			seq+=1;
-		}
-		DEBUG( "CPY REMAINING MSG DATA \n" );
-		lft =  in + message_len - msg_ptr;
-		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
-		#  ifdef CACHE_FLUSH
-		if ( fl_ctr  < fl_ratio )
-		{
-			_mm_clflush( qctx->ax_area + (msg_ptr - in) );
-			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
-		}
-		#  endif
-		DEBUG( "FLUSH REMAINING MSG DATA \n" );
-		#  ifdef MEM_BAR
-		_mm_mfence();
-		#  endif
-		# else
-		memcpy( (void *) qctx->ax_area , (void *) orig_payload_loc, message_len);
-		unsigned char * fl=qctx->ax_area;
-		while ( (unsigned char *) fl < (unsigned char *)(qctx->ax_area + message_len) ){
-			#  ifdef CACHE_FLUSH
-			if ( fl_ctr  < fl_ratio )
-			{
-				_mm_clflush( fl );
-				__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
-			}
-			#  endif
-			fl += 64;
-		}
-		# endif
-
-		/*USE */
-		uint8_t tec = *(uint8_t *)(tail->addr); /* check first byte of addr for accel complete */
-		if ( tec )
-			tec += 1;
-		DEBUG( "PASS DATA TO TLS LIB \n" );
-		out = (void *)qctx->ax_area;
-
-		#else
-		out = in;
-		#endif
         qctx->tag_set = 1;
     } else {
-#ifdef CPY_SERVER
 		DEBUG("COMPCPY\n");
-
-		# ifdef LAZY_FREE
-		pthread_mutex_lock(&ctr_lock);
-		/* RECYCLE */
-		if ( ring_space < message_len || cur_cons > tot_cons )
-		{
-			/* -- move tail pointer back by sending another write to the SmartDIMM accelerated*/
-			DEBUG( "MAKING SPACE IN RING BUF\n" );
-			if (tail == NULL)
-				goto rbuf_free;
-
-			uint8_t tec = *(uint8_t *)(tail->addr); /* check first byte of addr for accel complete */
-			if ( tec )
-				tec += 1;
-
-			memset(tail->addr, 0, tail->len);
-			#  ifdef CACHE_FLUSH
-			if ( fl_ctr  < fl_ratio )
-			{
-				_mm_clflush( tail->addr );
-				__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
-			}
-			#  endif
-			ring_space+=tail->len;
-		}
-rbuf_free:
-		pthread_mutex_unlock(&ctr_lock);
-		# endif
-
-		if (tail == NULL){
-			DEBUG( "Allocating Tail Entry -- from NULL\n" );
-			tail = (struct shadow_buf *)malloc(sizeof(struct shadow_buf));
-			tail->prev_buf=NULL;
-			tail->addr=(char *)(qctx->ax_area);
-			tail->len=message_len;
-		}else{
-			DEBUG( "Allocating Tail Entry \n" );
-			struct shadow_buf * prev = tail;
-			tail = (struct shadow_buf *)malloc(sizeof(struct shadow_buf));
-			tail->prev_buf=prev;
-			tail->addr=(char *)(qctx->ax_area);
-			tail->len=message_len;
-		}
-
-
 		/*COMP COPY*/
 
-		# ifdef PREF_CFG_DAT
-		/* Can we replace this with _mm_stream non-temporal write-combining instructions to enforce writing the prefixed IV in a single cache line-sized write */
-		char iv_prefix = 'A';
-		void * prefixed_iv=(void *)malloc(64);
-		memmove( (void *) prefixed_iv, (void * )&iv_prefix, 1 ); /* replace with bit shift ? */
+		/* flush fl_% of data not already in DRAM */
+		DEBUG( "START MSG DATA FLUSH \n" );
+		for (int i=0; i < message_len / (fl_ratio); i+=64){
+			DEBUG ("FLUSH 64 byte %d \n");
+			_mm_clflush(in + i);
+		}
 
-		char key_prefix = 'B';
-		void * prefixed_key=(void *)malloc(64);
-		memmove( (void *) qctx->ax_area, (void *) &key_prefix, 1 );
-		# endif
+		out = (void *)in;
 
-		/*copy metadata (key and iv)*/
-		DEBUG( "COPY CONFIG DATA TO REGISTERED ACCELERATION AREA \n" );
-		memcpy((void *)qctx->ax_area, (void *)qctx->iv, qctx->iv_len);
-		# ifdef CACHE_FLUSH
-		if ( fl_ctr  < fl_ratio )
-		{
-			_mm_clflush( (void *) qctx->ax_area);
-			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
-		}
-		# endif
-		#  ifdef MEM_BAR
-		_mm_mfence();
-		#  endif
-		memcpy((void *)qctx->ax_area, (void *)&qctx->key_data, qctx->iv_len);
-		# ifdef CACHE_FLUSH
-		if ( fl_ctr  < fl_ratio )
-		{
-			_mm_clflush( (void *) qctx->ax_area);
-			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
-		}
-		# endif
-		#  ifdef MEM_BAR
-		_mm_mfence();
-		#  endif
-	
-		/* copy msg data to axdimm in 64 byte chunks */
-		# ifdef ORDERED_WRITES
-		unsigned char * msg_ptr = in;
-		uint8_t seq = 0;
-		unsigned int lft;
-		
-		DEBUG( "START CPY MSG DATA \n" );
-		while (msg_ptr + 63 < (unsigned char *) (in + message_len)){
-			DEBUG ("COPY 63 byte %d \n", seq);
-			memcpy(qctx->ax_area + ( msg_ptr - in ),(void *) &seq, 1);
-			memcpy( (void *) qctx->ax_area + (msg_ptr - in), (void *) msg_ptr, 63);
-			#  ifdef CACHE_FLUSH
-			if ( fl_ctr  < fl_ratio )
-			{
-				_mm_clflush( qctx->ax_area + (msg_ptr - in) );
-				__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
-			}
-			#  endif
-			#  ifdef MEM_BAR
-			_mm_mfence();
-			#  endif
-			msg_ptr += 63;
-			seq+=1;
-		}
-		DEBUG( "CPY REMAINING MSG DATA \n" );
-		lft =  in + message_len - msg_ptr;
-		memcpy( (void *) qctx->ax_area, (void *) msg_ptr, lft);
-		#  ifdef CACHE_FLUSH
-		if ( fl_ctr  < fl_ratio )
-		{
-			_mm_clflush( qctx->ax_area + (msg_ptr - in) );
-			__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
-		}
-		#  endif
-		DEBUG( "FLUSH REMAINING MSG DATA \n" );
-		#  ifdef MEM_BAR
-		_mm_mfence();
-		#  endif
-		# else
-		memcpy( (void *) qctx->ax_area , (void *) orig_payload_loc, message_len);
-		unsigned char * fl=qctx->ax_area;
-		while ( (unsigned char *) fl < (unsigned char *)(qctx->ax_area + message_len) ){
-			#  ifdef CACHE_FLUSH
-			if ( fl_ctr  < fl_ratio )
-			{
-				_mm_clflush( fl );
-				__atomic_fetch_add(&fl_ctr,1,__ATOMIC_SEQ_CST);
-			}
-			#  endif
-			fl += 64;
-		}
-		# endif
-
-		/*USE */
-		uint8_t tec = *(uint8_t *)(tail->addr); /* check first byte of addr for accel complete */
-		if ( tec )
-			tec += 1;
-		DEBUG( "PASS DATA TO TLS LIB \n" );
-		out = (void *)qctx->ax_area;
-
-		#else
-		out = in;
-		#endif
         qctx->tag_set = 1;
 
     }
