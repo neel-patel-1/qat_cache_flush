@@ -10,8 +10,7 @@
  *   modification, are permitted provided that the following conditions
  *   are met:
  *
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions of source code must retain the above copyright *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in
  *       the documentation and/or other materials provided with the
@@ -129,7 +128,8 @@ static int qat_check_gcm_nid(int nid)
 #endif
 
 /*SMARTDIMM CONFIGS*/
-#define fl_ratio 2
+#define DO_FLUSH 1
+#define fl_ratio 4
 int fl_ctr;
 
 
@@ -972,10 +972,12 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 
 		/* flush fl_% of data not already in DRAM */
 		DEBUG( "START MSG DATA FLUSH \n" );
+		#ifdef DO_FLUSH
 		for (int i=0; i < message_len / (fl_ratio); i+=64){
 			DEBUG ("FLUSH 64 byte %d \n");
 			_mm_clflush(in + i);
 		}
+		#endif
 
 		out = (void *)in;
 
