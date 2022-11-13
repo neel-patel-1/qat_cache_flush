@@ -610,24 +610,6 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
 
             /* Check to see if tls_aad already allocated with correct size,
              * if so, reuse and save ourselves a free and malloc */
-            if (!( (qctx->tls_aad_len == EVP_AEAD_TLS1_AAD_LEN) && qctx->tls_aad ))
-			{
-                if (qctx->tls_aad) {
-                    OPENSSL_free(qctx->tls_aad);
-                    qctx->tls_aad_len = -1;
-                    qctx->tls_aad_set = 0;
-                }
-
-                qctx->tls_aad_len = EVP_AEAD_TLS1_AAD_LEN;
-
-                qctx->tls_aad = OPENSSL_malloc(qctx->tls_aad_len);
-                if (! qctx->tls_aad) {
-                    WARN("AAD alloc failed\n");
-                    QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_MALLOC_FAILURE);
-                    ret_val = 0;
-                    break;
-                }
-            }
 
             /* Extract the length of the payload from the TLS header */
             unsigned int plen = qctx->tls_aad[arg - QAT_GCM_TLS_PAYLOADLENGTH_MSB_OFFSET]
@@ -720,15 +702,6 @@ int vaesgcm_ciphers_cleanup(EVP_CIPHER_CTX* ctx)
             qctx->tag_set = 0;
         }
 
-        if (qctx->accel_time) {
-            OPENSSL_free(qctx->accel_time);
-            qctx->accel_time     = NULL;
-        }
-
-		if (qctx->ax_area) {
-			munmap(qctx->ax_area, 16 * 1024 );
-		}
-
     }
     return 1;
 }
@@ -793,93 +766,7 @@ int vaesgcm_ciphers_do_cipher(EVP_CIPHER_CTX*      ctx,
         return aes_gcm_tls_cipher(ctx, out, in, len, qctx, enc);
 	}
 
-    key_data_ptr = &(qctx->key_data);
-    gcm_ctx_ptr  = &(qctx->gcm_ctx);
 
-    /* If we have a case where out == NULL, and in != NULL,
-     * then its aad being passed */
-    if ((out == NULL) && (in != NULL)) {
-        qat_imb_aes_gcm_init_var_iv(nid, ipsec_mgr,
-                                    key_data_ptr,
-                                    gcm_ctx_ptr,
-                                    qctx->iv, qctx->iv_len, in, len);
-
-        DEBUG("AAD passsed in\n");
-        return 0;
-    }
-
-    /* Handle the case where EVP_EncryptFinal_ex is called with a NULL input buffer.
-     * Note: Null CT/PT provided to EVP_Encrypt|DecryptUpdate shares the same function
-     * signature as if EVP_Encrypt|DecryptFinal_ex() was called */
-    if (in == NULL && out != NULL) {
-
-        if (enc) {
-            if (qctx->tag == NULL || qctx->tag_len <= 0) {
-                WARN("AES-GCM Tag == NULL || tag_len <=0\n");
-                return -1;
-            }
-
-            /* if we haven't already calculated and the set the tag,
-             * then do so */
-            if (qctx->tag_set < 1) {
-                qat_imb_aes_gcm_enc_finalize(nid, ipsec_mgr, key_data_ptr,
-                                             gcm_ctx_ptr, qctx->tag,
-                                             qctx->tag_len);
-            }
-            qctx->tag_set = 1;
-
-           return len;
-
-        } else {  /* Decrypt Flow */
-
-            if (qctx->tag_calculated < 1) {
-                qat_imb_aes_gcm_dec_finalize(nid, ipsec_mgr, key_data_ptr,
-                        gcm_ctx_ptr, out,
-                        qctx->tag_len);
-
-                /* Stash the calculated tag from the decryption,
-                 * so it can get compared to expected value below */
-                if (qctx->calculated_tag)
-                    memcpy(qctx->calculated_tag, out, qctx->tag_len);
-
-                DUMPL("Decrypt - Calculated Tag",
-                     (const unsigned char*)qctx->calculated_tag ,
-                      qctx->tag_len);
-                qctx->tag_calculated = 1;
-            }
-
-            DUMPL("Decrypt - Set Tag", (const unsigned char*)qctx->tag,
-                  qctx->tag_len);
-
-            /* Wait until signaled by EVP_CTRL_GCM_SET_TAG, that a tag
-             * has been set via the control function before we compared
-             * the one we calculated if qctx->tag_set == 0, then itsi
-             * likely that NULL plaintext was sent in and this looksi
-             * just like a DecryptFinal_Ex() call, so wait until control
-             * function calls to set the tag */
-            if (qctx->tag_set) {
-                DEBUG("Decrypt - GCM Tag Set so calling memcmp\n");
-                if (memcmp(qctx->calculated_tag, qctx->tag, qctx->tag_len) == 0)
-                    return 0;
-                else{
-                    WARN("AES-GCM calculated tag comparison failed\n");
-                    DUMPL("Expected   Tag:", (const unsigned char *)qctx->tag, qctx->tag_len);
-                    DUMPL("Calculated Tag:", (const unsigned char *)qctx->calculated_tag, qctx->tag_len);
-                    DUMPL("Decrypt - Calculated Tag",
-                         (const unsigned char*)qctx->calculated_tag ,
-                          qctx->tag_len);
-                    return -1;
-                }
-            }
-        }
-    } else {
-        if (enc)
-            qat_imb_aes_gcm_enc_update(nid, ipsec_mgr, key_data_ptr,
-                                       gcm_ctx_ptr, out, in, len);
-        else
-            qat_imb_aes_gcm_dec_update(nid, ipsec_mgr, key_data_ptr,
-                                       gcm_ctx_ptr, out, in, len);
-    }
 
     return len;
 }
