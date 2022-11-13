@@ -128,7 +128,7 @@ static int qat_check_gcm_nid(int nid)
 #endif
 
 /*SMARTDIMM CONFIGS*/
-#define DO_FLUSH 1
+//#define DO_FLUSH 1
 #define fl_ratio 4
 int fl_ctr;
 
@@ -394,6 +394,7 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
             }
 
             qctx->tag = OPENSSL_zalloc(arg);
+			/*
             if (qctx->tag) {
                 memcpy(qctx->tag, ptr, arg);
                 qctx->tag_len = arg;
@@ -405,6 +406,8 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
                 QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_ALLOC_TAG_FAILURE);
                 ret_val = 0;
             }
+			*/
+                ret_val = 1;
             break;
         }
 
@@ -797,9 +800,7 @@ int vaesgcm_ciphers_do_cipher(EVP_CIPHER_CTX*      ctx,
     /* Distinguish between a regular crypto update and the TLS case
      * qctx->tls_aad_len only set when EVP_CTRL_AEAD_TLS1_AAD control is sent */
     if (qctx->tls_aad_len >= 0){
-		out = in;
-		return out;
-        //return aes_gcm_tls_cipher(ctx, out, in, len, qctx, enc);
+        return aes_gcm_tls_cipher(ctx, out, in, len, qctx, enc);
 	}
 
     key_data_ptr = &(qctx->key_data);
@@ -940,34 +941,11 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
     /* Encryption: generate explicit IV and write to start of buffer.
      * Decryption: read the explicit IV from start of buffer
      */
-    if (EVP_CIPHER_CTX_ctrl(ctx, enc ? EVP_CTRL_GCM_IV_GEN : EVP_CTRL_GCM_SET_IV_INV,
-                            EVP_GCM_TLS_EXPLICIT_IV_LEN, out) <= 0) {
-        WARN("EVP_CIPHER_CTRL Failed\n");
-        return -1;
-    }
 
-    nid = EVP_CIPHER_CTX_nid(ctx);
-
-    /* The key has been set in the init function: no need to check it here*/
-    /* Initialize the session if not done before */
-
-    if (0 == vaesgcm_init_gcm(ctx)) {
-        WARN("Failed to initialize GCM Context\n");
-        QATerr(QAT_F_AES_GCM_TLS_CIPHER, QAT_R_INITIALIZE_CTX_FAILURE);
-        return -1;
-    }
-
-    /* Include the explicit part of the IV at the beginning of the output  */
-    in += EVP_GCM_TLS_EXPLICIT_IV_LEN;
-    out += EVP_GCM_TLS_EXPLICIT_IV_LEN;
 
     /* This is the length of the message that must be encrypted */
     message_len = len - (EVP_GCM_TLS_EXPLICIT_IV_LEN + EVP_GCM_TLS_TAG_LEN);
 
-    key_data_ptr = &(qctx->key_data);
-    gcm_ctx_ptr  = &(qctx->gcm_ctx);
-
-    tag = orig_payload_loc + tag_offset;
 
     if (enc) {
 		DEBUG("COMPCPY\n");
@@ -1051,7 +1029,7 @@ int vaesgcm_init_key(EVP_CIPHER_CTX* ctx, const unsigned char* inkey)
     key_data_ptr = &(qctx->key_data);
     key = (const void*)(inkey);
 
-    qat_imb_aes_gcm_precomp(nid, ipsec_mgr, key, key_data_ptr);
+    //qat_imb_aes_gcm_precomp(nid, ipsec_mgr, key, key_data_ptr);
 
     qctx->ckey_set = 1;
     return 1;
