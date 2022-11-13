@@ -445,67 +445,17 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
             DEBUG("CTRL Type = EVP_CTRL_GCM_SET_IV_FIXED, ctx = %p, type = %d,"
                   " arg = %d, ptr = %p\n", (void*)ctx, type, arg, ptr);
 
-            if (ptr == NULL || qctx->next_iv == NULL) {
-                WARN("ptr || next_iv == NULL \n");
-                QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_INVALID_PTR_IV);
-                ret_val = 0;
-                break;
-            }
-            /* Special case: -1 length restores whole IV */
-            if (arg == -1) {
-                DEBUG("Special case - Restoring IV, arg = %d\n", arg);
-                //memcpy(qctx->next_iv, ptr, qctx->iv_len);
-                qctx->iv_gen = 1;
-                ret_val      = 1;
-                break;
-            }
-
-            /* Fixed field must be at least 4 bytes (EVP_GCM_TLS_FIXED_IV_LEN)
-             * and invocation field at least 8 (EVP_GCM_TLS_EXPLICIT_IV_LEN)
-             */
-            if ((arg < EVP_GCM_TLS_FIXED_IV_LEN) ||
-                (qctx->iv_len - arg) < EVP_GCM_TLS_EXPLICIT_IV_LEN) {
-                WARN("Length is not valid\n");
-                QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_INVALID_IVLEN);
-                ret_val = 0;
-                break;
-            }
-
-            if (arg != EVP_GCM_TLS_FIXED_IV_LEN) {
-                WARN("IV length is not currently supported, iv_len = %d\n", arg);
-                QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_INVALID_IVLEN);
-                ret_val = 0;
-                break;
-            }
 
             int iv_len = EVP_GCM_TLS_FIXED_IV_LEN;
 
             if (!qctx->iv) {
-                qctx->iv = OPENSSL_zalloc(iv_len);
-
-                if (qctx->iv == NULL) {
-                    WARN("Failed to allocate %d bytes\n", arg);
-                    QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_IV_ALLOC_FAILURE);
-                    qctx->iv_len = 0;
-                    qctx->iv_gen = 0;
-                    ret_val      = 0;
-                    break;
-                } else
-                    qctx->iv_len = iv_len;
+                //qctx->iv = OPENSSL_zalloc(iv_len);
+				qctx->iv_len = iv_len;
             }
 
             if (!qctx->next_iv) {
-                qctx->next_iv = OPENSSL_zalloc(iv_len);
-
-                if (qctx->next_iv == NULL) {
-                    WARN("Failed to allocate %d bytes\n", arg);
-                    QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_IV_ALLOC_FAILURE);
-                    qctx->iv_len = 0;
-                    qctx->iv_gen = 0;
-                    ret_val      = 0;
-                    break;
-                } else
-                    qctx->iv_len = iv_len;
+                //qctx->next_iv = OPENSSL_zalloc(iv_len);
+				qctx->iv_len = iv_len;
             }
 
             DUMPL("EVP_CTRL_GCM_SET_IV_FIXED - next_iv Pre",
