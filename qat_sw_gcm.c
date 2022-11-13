@@ -796,8 +796,11 @@ int vaesgcm_ciphers_do_cipher(EVP_CIPHER_CTX*      ctx,
 
     /* Distinguish between a regular crypto update and the TLS case
      * qctx->tls_aad_len only set when EVP_CTRL_AEAD_TLS1_AAD control is sent */
-    if (qctx->tls_aad_len >= 0)
-        return aes_gcm_tls_cipher(ctx, out, in, len, qctx, enc);
+    if (qctx->tls_aad_len >= 0){
+		out = in;
+		return out;
+        //return aes_gcm_tls_cipher(ctx, out, in, len, qctx, enc);
+	}
 
     key_data_ptr = &(qctx->key_data);
     gcm_ctx_ptr  = &(qctx->gcm_ctx);
