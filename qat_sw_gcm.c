@@ -351,7 +351,7 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
             DEBUG("CTRL Type = EVP_CTRL_INIT, ctx = %p, type = %d, "
                   "arg = %d, ptr = %p\n", (void*)ctx, type, arg, ptr);
 
-            memset(qctx, 0, sizeof(vaesgcm_ctx));
+            //memset(qctx, 0, sizeof(vaesgcm_ctx));
 
             qctx->tls_aad_len     = -1;
             qctx->iv_gen          = -1;
@@ -448,32 +448,11 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
 
             int iv_len = EVP_GCM_TLS_FIXED_IV_LEN;
 
-            if (!qctx->iv) {
-                //qctx->iv = OPENSSL_zalloc(iv_len);
-				qctx->iv_len = iv_len;
-            }
-
-            if (!qctx->next_iv) {
-                //qctx->next_iv = OPENSSL_zalloc(iv_len);
-				qctx->iv_len = iv_len;
-            }
+			qctx->iv_len = iv_len;
 
             DUMPL("EVP_CTRL_GCM_SET_IV_FIXED - next_iv Pre",
                  (const unsigned char*)qctx->next_iv, qctx->iv_len);
 
-            if (arg) {
-                //memcpy(qctx->next_iv, ptr, arg);
-            }
-            DUMPL("EVP_CTRL_GCM_SET_IV_FIXED - next_iv Post",
-                 (const unsigned char*)qctx->next_iv, qctx->iv_len);
-
-            /* Generate the explicit part of the IV for encryption */
-            if (enc && RAND_bytes(qctx->next_iv + arg, qctx->iv_len - arg) <= 0) {
-                WARN("RAND_Bytes Failed to generate explicit IV\n");
-                QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_RAND_BYTES_FAILURE);
-                ret_val = 0;
-                break;
-            }
 
             DUMPL("EVP_CTRL_GCM_SET_IV_FIXED - next _iv explicit",
                   (const unsigned char*)qctx->next_iv, qctx->iv_len);
