@@ -734,6 +734,11 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
     unsigned char* orig_payload_loc = (unsigned char*)in;
     struct gcm_key_data* key_data_ptr = NULL;
     struct gcm_context_data* gcm_ctx_ptr = NULL;
+	long long unsigned int gzbl = 0;
+	volatile __m128i config[2];
+
+	/* encrypt zero block for input to ghash*/
+	__m128i key_schedule[20];
 
     DEBUG("enc = %d - ctx = %p, out = %p, in = %p, len = %zu\n", enc, (void*)ctx, (void*)out,
           (void*)in, len);
@@ -744,13 +749,21 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
         return -1;
     }
 
-    /* Encryption: generate explicit IV and write to start of buffer.
-     * Decryption: read the explicit IV from start of buffer
-     */
+	/* encrypt first block */
+	DO_ENC_BLOCK( *(__m128i *)in, key_schedule );
+	DO_ENC_BLOCK( *(__m128i *)in, key_schedule );
+
+	/* MMIO write */
+	config[0] = *(__m128i *)in; 
+	config[1] = *(__m128i *)gzbl;
 
 
     /* This is the length of the message that must be encrypted */
     message_len = len - (EVP_GCM_TLS_EXPLICIT_IV_LEN + EVP_GCM_TLS_TAG_LEN);
+
+	/* Perform MMIO Writes and generate encrypted IV and encrypted 0-block for GF
+	 * Multipliers*/
+
 
 
     if (enc) {
@@ -774,11 +787,13 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX*      ctx,
 		/*COMP COPY*/
 
 		/* flush fl_% of data not already in DRAM */
+		#ifdef DO_FLUSH
 		DEBUG( "START MSG DATA FLUSH \n" );
 		for (int i=0; i < message_len / (fl_ratio); i+=64){
 			DEBUG ("FLUSH 64 byte %d \n");
 			_mm_clflush(in + i);
 		}
+		#endif
 
 		out = (void *)in;
 

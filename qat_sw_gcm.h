@@ -50,6 +50,7 @@
 # include <openssl/evp.h>
 # include <openssl/modes.h>
 # include <intel-ipsec-mb.h>
+# include <wmmintrin.h>
 
 # define VAESGCM_COMMON_CIPHER_FLAG EVP_CIPH_FLAG_DEFAULT_ASN1
 
@@ -62,6 +63,21 @@
 # define vaesgcm_data(ctx) ((vaesgcm_ctx*)EVP_CIPHER_CTX_get_cipher_data(ctx))
 
 # pragma pack(push, 16)
+
+#define DO_ENC_BLOCK(m,k) \
+	do{\
+		m = _mm_xor_si128       (m, k[ 0]); \
+		m = _mm_aesenc_si128    (m, k[ 1]); \
+		m = _mm_aesenc_si128    (m, k[ 2]); \
+		m = _mm_aesenc_si128    (m, k[ 3]); \
+		m = _mm_aesenc_si128    (m, k[ 4]); \
+		m = _mm_aesenc_si128    (m, k[ 5]); \
+		m = _mm_aesenc_si128    (m, k[ 6]); \
+		m = _mm_aesenc_si128    (m, k[ 7]); \
+		m = _mm_aesenc_si128    (m, k[ 8]); \
+		m = _mm_aesenc_si128    (m, k[ 9]); \
+		m = _mm_aesenclast_si128(m, k[10]);\
+	}while(0)
 
 
 /* per connection context data -- added smartDIMM area for maintaining physical addresses*/
