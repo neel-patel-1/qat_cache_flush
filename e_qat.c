@@ -485,7 +485,6 @@ const ENGINE_CMD_DEFN qat_cmd_defns[] = {
 #if !defined(QAT_OPENSSL_PROVIDER)
 static int qat_engine_destroy(ENGINE *e)
 {
-    DEBUG("---- Destroying Engine...\n\n");
 # ifdef QAT_HW
 #  ifndef QAT_BORINGSSL
     qat_free_DH_methods();
@@ -518,7 +517,6 @@ static int qat_engine_destroy(ENGINE *e)
     qat_sw_sm4_gcm_offload = 0;
     qat_sw_sm4_ccm_offload = 0;
     qat_hw_sm3_offload = 0;
-    QAT_DEBUG_LOG_CLOSE();
     ERR_unload_QAT_strings();
     return 1;
 }
@@ -560,8 +558,6 @@ int qat_sw_cpu_support(void)
 	/*
 	attempting to force sw_offload methods to be called
 	*/
-	DEBUG("FORCING IPSEC\n");
-	qat_sw_ipsec = 1;
 	
     if (avx512f && vaes && vpclmulqdq) {
         return 1;
@@ -602,7 +598,6 @@ int qat_engine_init(ENGINE *e)
     }
 
     CRYPTO_INIT_QAT_LOG();
-    DEBUG("QAT Engine initialization:\n");
 
 #ifdef QAT_HW
     if (qat_hw_offload) {
@@ -648,7 +643,6 @@ int qat_engine_finish_int(ENGINE *e, int reset_globals)
 {
     int ret = 1;
 
-    DEBUG("---- QAT Engine Finishing...\n\n");
     DEBUG("RSA Priv retries: %d, HW requests: %lld, SW requests: %lld\n",
           num_rsa_priv_retry, num_rsa_hw_priv_reqs, num_rsa_sw_priv_reqs);
     DEBUG("RSA Pub retries: %d, HW requests: %lld, SW requests: %lld\n",
@@ -773,7 +767,6 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
         case QAT_CMD_ENABLE_EXTERNAL_POLLING:
         BREAK_IF(engine_inited, \
                 "ENABLE_EXTERNAL_POLLING failed as the engine is already initialized\n");
-        DEBUG("Enabled external polling\n");
         enable_external_polling = 1;
 #ifdef QAT_HW
         enable_inline_polling = 0;
@@ -784,7 +777,6 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
         case QAT_CMD_ENABLE_INLINE_POLLING:
         BREAK_IF(engine_inited, \
                 "ENABLE_INLINE_POLLING failed as the engine is already initialized\n");
-        DEBUG("Enabled inline polling\n");
         enable_inline_polling = 1;
         enable_external_polling = 0;
         break;
@@ -812,18 +804,15 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
         BREAK_IF(fcntl_ret == -1, \
                  "GET_EXTERNAL_POLLING_FD failed as there was an error in setting the fd as NONBLOCKING\n");
 
-        DEBUG("External polling FD for instance[%ld] = %d\n", i, fd);
         *(int *)p = fd;
         break;
         case QAT_CMD_ENABLE_EVENT_DRIVEN_POLLING_MODE:
-        DEBUG("Enabled event driven polling mode\n");
         BREAK_IF(engine_inited, \
                 "ENABLE_EVENT_DRIVEN_POLLING_MODE failed as the engine is already initialized\n");
         enable_event_driven_polling = 1;
         break;
 
         case QAT_CMD_DISABLE_EVENT_DRIVEN_POLLING_MODE:
-        DEBUG("Disabled event driven polling mode\n");
         BREAK_IF(engine_inited, \
                 "DISABLE_EVENT_DRIVEN_POLLING_MODE failed as the engine is already initialized\n");
         enable_event_driven_polling = 0;
@@ -837,7 +826,6 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
                 "SET_INSTANCE_FOR_THREAD failed as the engine is not initialized\n");
         BREAK_IF(qat_instance_handles == NULL,                          \
                 "SET_INSTANCE_FOR_THREAD failed as no instances are available\n");
-        DEBUG("Set instance for thread = %ld\n", i);
         retVal = qat_set_instance_for_thread(i);
         break;
 
@@ -850,7 +838,6 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
         case QAT_CMD_SET_MAX_RETRY_COUNT:
         BREAK_IF(i < -1 || i > 100000,
                 "The Message retry count value is out of range, using default value\n");
-        DEBUG("Set max retry counter = %ld\n", i);
         qat_max_retry_count = (int)i;
         break;
 #endif
@@ -858,14 +845,12 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
         case QAT_CMD_SET_INTERNAL_POLL_INTERVAL:
         BREAK_IF(i < 1 || i > 1000000,
                 "The polling interval value is out of range, using default value\n");
-        DEBUG("Set internal poll interval = %ld ns\n", i);
         qat_poll_interval = (useconds_t) i;
         break;
 #ifndef QAT_BORINGSSL
         case QAT_CMD_SET_EPOLL_TIMEOUT:
         BREAK_IF(i < 1 || i > 10000,
                 "The epoll timeout value is out of range, using default value\n")
-            DEBUG("Set epoll_wait timeout = %ld ms\n", i);
         qat_epoll_timeout = (int) i;
         break;
 
@@ -876,7 +861,6 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
                 "GET_NUM_CRYPTO_INSTANCES failed as the engine is not initialized\n");
         BREAK_IF(qat_instance_handles == NULL,                          \
                 "GET_NUM_CRYPTO_INSTANCES failed as no instances are available\n");
-        DEBUG("Get number of crypto instances = %d\n", qat_num_instances);
         *(int *)p = qat_num_instances;
         break;
 #endif /* QAT_BORINGSSL */
@@ -918,7 +902,6 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
                 "ENABLE_HEURISTIC_POLLING failed as the engine is already initialized\n");
         BREAK_IF(!enable_external_polling,
                 "ENABLE_HEURISTIC_POLLING failed as external polling is not enabled\n");
-        DEBUG("Enabled heuristic polling\n");
         enable_heuristic_polling = 1;
         break;
 
@@ -944,7 +927,6 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
         break;
 
         case QAT_CMD_INIT_ENGINE:
-        DEBUG("Init engine\n");
         if ((retVal = qat_engine_init(e)) == 0) {
             WARN("Failure initializing engine\n");
         }
@@ -970,7 +952,6 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
         break;
         case QAT_CMD_ENABLE_SW_FALLBACK:
 # if !defined(__FreeBSD__) && !defined(QAT_HW_INTREE)
-        DEBUG("Enabled SW Fallback\n");
         BREAK_IF(engine_inited, \
                 "ENABLE_SW_FALLBACK failed as the engine is already initialized\n");
         enable_sw_fallback = 1;
@@ -999,7 +980,6 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
         break;
 
         case QAT_CMD_DISABLE_QAT_OFFLOAD:
-        DEBUG("Disabled qat offload\n");
         BREAK_IF(!engine_inited, \
                 "DISABLE_QAT_OFFLOAD failed as the engine is not initialized\n");
         disable_qat_offload = 1;
@@ -1015,7 +995,6 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
                 "The hardware enable mask is invalid.\n");
         BREAK_IF(val > 0xFFFFF,
                 "The hardware enable mask is out of the range.\n");
-        DEBUG("QAT_CMD_HW_ALGO_BITMAP = 0x%lx\n", val);
         qat_hw_algo_enable_mask = val;
         qat_reload_algo = 1;
         BREAK_IF(!bind_qat(e, engine_qat_id), "QAT Engine bind failed\n");
@@ -1031,7 +1010,6 @@ int qat_engine_ctrl(ENGINE *e, int cmd, long i, void *p, void (*f) (void))
                 "The software enable mask is invalid.\n");
         BREAK_IF(val > 0xFFFFF,
                 "The software enable mask is out of the range.\n");
-        DEBUG("QAT_CMD_SW_ALGO_BITMAP = 0x%lx\n", val);
         qat_sw_algo_enable_mask = val;
         qat_reload_algo = 1;
         BREAK_IF(!bind_qat(e, engine_qat_id), "QAT Engine bind failed\n");
@@ -1059,7 +1037,6 @@ EVP_PKEY *qat_engine_load_privkey(ENGINE *e, const char *key_id, UI_METHOD *ui_m
     CpaCyCapabilitiesInfo CapInfo;
     int instNum = 0;
     
-    DEBUG("Begin qat_engine_load_privkey\n");
 
     if (access(key_id, F_OK)) {
         WARN("File %s does not exist\n", key_id);
@@ -1084,7 +1061,6 @@ EVP_PKEY *qat_engine_load_privkey(ENGINE *e, const char *key_id, UI_METHOD *ui_m
 
     kpt_enabled = 1;
 
-    DEBUG("Finish qat_engine_load_privkey\n");
     return pkey;
 
 error:
@@ -1113,10 +1089,8 @@ int bind_qat(ENGINE *e, const char *id)
     Cpa32U dev_count = 0;
 # endif
 #endif
-    QAT_DEBUG_LOG_INIT();
 
     WARN("QAT Warnings enabled.\n");
-    DEBUG("QAT Debug enabled.\n");
     WARN("%s - %s \n", id, engine_qat_name);
 
     /* Ensure the QAT error handling is set up */
@@ -1128,13 +1102,11 @@ int bind_qat(ENGINE *e, const char *id)
     if (icp_adf_get_numDevices(&dev_count) == CPA_STATUS_SUCCESS) {
         if (dev_count > 0) {
             qat_hw_offload = 1;
-            DEBUG("%d QAT HW device available\n", dev_count);
         }
     }
 # else
     if (icp_sal_userIsQatAvailable() == CPA_TRUE) {
         qat_hw_offload = 1;
-        DEBUG("QAT HW device available\n");
     }
 #endif
     if (!qat_hw_offload) {
@@ -1288,7 +1260,6 @@ int bind_qat(ENGINE *e, const char *id)
 # ifdef ENABLE_QAT_HW_GCM
         if (!qat_sw_gcm_offload) {
             qat_hw_gcm_offload = 1;
-            DEBUG("QAT_HW GCM for Provider Enabled\n");
         }
 # endif
     }
@@ -1332,7 +1303,6 @@ int bind_qat(ENGINE *e, const char *id)
 
 # ifdef ENABLE_QAT_SW_GCM
         qat_sw_gcm_offload = 1;
-        DEBUG("QAT_SW GCM for Provider Enabled\n");
 # endif
 # if defined(ENABLE_QAT_FIPS) && defined (ENABLE_QAT_SW_SHA2)
         qat_sw_sha_offload = 1;
@@ -1420,7 +1390,6 @@ IMPLEMENT_DYNAMIC_CHECK_FN()
 static ENGINE *engine_qat(void)
 {
     ENGINE *ret = NULL;
-    DEBUG("- Starting\n");
 
     /* For boringssl enabled, no API like ENGINE_add to add a new engine to
      * engine list, so just return existing global engine pointer
@@ -1455,8 +1424,6 @@ void ENGINE_load_qat(void)
     int error = 0;
     char error_string[QAT_MAX_ERROR_STRING] = { 0 };
 
-    QAT_DEBUG_LOG_INIT();
-    DEBUG("- Starting\n");
 
     toadd = engine_qat();
     if (toadd == NULL) {
@@ -1466,7 +1433,6 @@ void ENGINE_load_qat(void)
         return;
     }
 
-    DEBUG("adding engine\n");
     /* For boringssl enabled, no API like ENGINE_add to add a new engine to
      * engine list, so here ENGINE_add was redefined to do nothing. And also
      * not free the engine using ENGINE_free
@@ -1482,7 +1448,6 @@ void ENGINE_load_qat(void)
 void ENGINE_unload_qat(void)
 {
     ENGINE *todel;
-    DEBUG("- Stopping\n");
 
     todel = ENGINE_QAT_PTR_GET();
     if (todel != NULL) {

@@ -602,7 +602,6 @@ static int TlsPrf_Ops(void *args, unsigned char *out, size_t outlen,
         switch (operation) {
         case 0:                /*TLS_MD_MASTER_SECRET_CONST */
             if (count == 0)
-                DEBUG("Validating: TLS_MD_MASTER_SECRET_CONST\n");
             seed1 = TLS_MD_MASTER_SECRET_CONST;
             seed1_len = TLS_MD_MASTER_SECRET_CONST_SIZE;
             populatemasterSecret(&seed2, &seed2_len, &seed3, &seed3_len,
@@ -613,7 +612,6 @@ static int TlsPrf_Ops(void *args, unsigned char *out, size_t outlen,
             break;
         case 1:                /*TLS_MD_KEY_EXPANSION_CONST */
             if (count == 0)
-                DEBUG("Validating: TLS_MD_KEY_EXPANSION_CONST\n");
             seed1 = TLS_MD_KEY_EXPANSION_CONST;
             seed1_len = TLS_MD_KEY_EXPANSION_CONST_SIZE;
             populateMdKeyExpansion(&seed2, &seed2_len, &seed3, &seed3_len,
@@ -624,7 +622,6 @@ static int TlsPrf_Ops(void *args, unsigned char *out, size_t outlen,
             break;
         case 2:                /*TLS_MD_CLIENT_FINISH_CONST */
             if (count == 0)
-                DEBUG("Validating: TLS_MD_CLIENT_FINISH_CONST\n");
             seed1 = TLS_MD_CLIENT_FINISH_CONST;
             seed1_len = TLS_MD_CLIENT_FINISH_CONST_SIZE;
             populateMdClientFinished(&seed2, &seed2_len, &seed3, &seed3_len,
@@ -635,7 +632,6 @@ static int TlsPrf_Ops(void *args, unsigned char *out, size_t outlen,
             break;
         case 3:                /*TLS_MD_SERVER_FINISH_CONST */
             if (count == 0)
-                DEBUG("Validating: TLS_MD_SERVER_FINISH_CONST\n");
             seed1 = TLS_MD_SERVER_FINISH_CONST;
             seed1_len = TLS_MD_SERVER_FINISH_CONST_SIZE;
             populateMdServerFinished(&seed2, &seed2_len, &seed3, &seed3_len,
@@ -646,7 +642,6 @@ static int TlsPrf_Ops(void *args, unsigned char *out, size_t outlen,
             break;
         case 4:                /*TLS_MD_EXTENDED_MASTER_SECRET_CONST */
             if (count == 0)
-                DEBUG("Validating: TLS_MD_EXTENDED_MASTER_SECRET_CONST\n");
             seed1 = TLS_MD_EXTENDED_MASTER_SECRET_CONST;
             seed1_len = TLS_MD_EXTENDED_MASTER_SECRET_CONST_SIZE;
             populateExtendedMasterSecret(&seed2, &seed2_len, &seed3, &seed3_len,
@@ -674,7 +669,6 @@ int QAT_TlsPrf_Ops(void *args, unsigned char *out, size_t outlen,
                    const char *desc)
 {
     if (!(TlsPrf_Ops(args, out, outlen, desc)))
-        DEBUG("error in TlsPrf_Ops\n");
 
     return 1;
 }

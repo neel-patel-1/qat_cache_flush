@@ -69,7 +69,6 @@ mb_flist_rsa_priv * mb_flist_rsa_priv_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -160,7 +159,6 @@ mb_flist_rsa_pub * mb_flist_rsa_pub_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -251,7 +249,6 @@ mb_flist_x25519_keygen * mb_flist_x25519_keygen_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -343,7 +340,6 @@ mb_flist_x25519_derive *mb_flist_x25519_derive_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -436,7 +432,6 @@ mb_flist_ecdsa_sign * mb_flist_ecdsa_sign_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -529,7 +524,6 @@ mb_flist_ecdsa_sign_setup * mb_flist_ecdsa_sign_setup_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -622,7 +616,6 @@ mb_flist_ecdsa_sign_sig * mb_flist_ecdsa_sign_sig_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -715,7 +708,6 @@ mb_flist_ecdsa_verify * mb_flist_ecdsa_verify_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -808,7 +800,6 @@ mb_flist_ecdsa_sm2_sign * mb_flist_ecdsa_sm2_sign_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -902,7 +893,6 @@ mb_flist_ecdsa_sm2_verify * mb_flist_ecdsa_sm2_verify_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -995,7 +985,6 @@ mb_flist_ecdh_keygen * mb_flist_ecdh_keygen_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -1088,7 +1077,6 @@ mb_flist_ecdh_compute * mb_flist_ecdh_compute_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -1181,7 +1169,6 @@ mb_flist_sm3_init * mb_flist_sm3_init_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -1273,7 +1260,6 @@ mb_flist_sm3_update * mb_flist_sm3_update_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -1365,7 +1351,6 @@ mb_flist_sm3_final * mb_flist_sm3_final_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -1457,7 +1442,6 @@ mb_flist_sm4_cbc_cipher *mb_flist_sm4_cbc_cipher_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -1551,7 +1535,6 @@ mb_flist_sm4_gcm_encrypt *mb_flist_sm4_gcm_encrypt_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -1644,7 +1627,6 @@ mb_flist_sm4_gcm_decrypt *mb_flist_sm4_gcm_decrypt_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -1739,7 +1721,6 @@ mb_flist_sm4_ccm_encrypt *mb_flist_sm4_ccm_encrypt_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {
@@ -1832,7 +1813,6 @@ mb_flist_sm4_ccm_decrypt *mb_flist_sm4_ccm_decrypt_create()
     if (!enable_external_polling)
         pthread_mutex_init(&freelist->mb_flist_mutex, NULL);
 
-    DEBUG("Freelist Created %p\n", freelist);
     freelist->head = NULL;
 
     while (num_items > 0) {

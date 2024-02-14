@@ -127,7 +127,6 @@ EVP_PKEY_METHOD *qat_prf_pmeth(void)
     if (qat_hw_offload && (qat_hw_algo_enable_mask & ALGO_ENABLE_MASK_PRF)) {
         qat_prf_pkey_methods();
         qat_hw_prf_offload = 1;
-        DEBUG("QAT HW PRF Registration succeeded\n");
     } else {
         qat_hw_prf_offload = 0;
     }
@@ -135,7 +134,6 @@ EVP_PKEY_METHOD *qat_prf_pmeth(void)
 
     if (!qat_hw_prf_offload) {
 #ifndef QAT_OPENSSL_PROVIDER
-        DEBUG("QAT HW PRF is disabled, using OpenSSL SW\n");
 #endif
 #ifndef QAT_OPENSSL_3
         EVP_PKEY_meth_copy(_hidden_prf_pmeth, sw_prf_pmeth);
@@ -190,7 +188,6 @@ int qat_tls1_prf_init(EVP_PKEY_CTX *ctx)
 
 #ifndef QAT_OPENSSL_3
     if (qat_get_qat_offload_disabled() || qat_get_sw_fallback_enabled()) {
-        DEBUG("- Switched to software mode or fallback mode enabled.\n");
         EVP_PKEY_meth_get_init((EVP_PKEY_METHOD *)sw_prf_pmeth, &sw_init_fn_ptr);
         ret = (*sw_init_fn_ptr)(ctx);
         if (ret != 1) {
@@ -255,7 +252,6 @@ void qat_prf_cleanup(EVP_PKEY_CTX *ctx)
 
 #ifndef QAT_OPENSSL_3
     if (qat_get_qat_offload_disabled() || qat_get_sw_fallback_enabled()) {
-        DEBUG("- Switched to software mode or fallback mode enabled.\n");
         /* Clean up the sw_prf_ctx_data created by the init function */
         EVP_PKEY_meth_get_cleanup((EVP_PKEY_METHOD *)sw_prf_pmeth, &sw_cleanup_fn_ptr);
         EVP_PKEY_CTX_set_data(ctx, qat_prf_ctx->sw_prf_ctx_data);
@@ -330,7 +326,6 @@ int qat_tls1_prf_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
 
 #ifndef QAT_OPENSSL_3
     if (qat_get_qat_offload_disabled() || qat_get_sw_fallback_enabled()) {
-        DEBUG("- Switched to software mode or fallback mode enabled.\n");
         EVP_PKEY_meth_get_ctrl((EVP_PKEY_METHOD *)sw_prf_pmeth, &sw_ctrl_fn_ptr, NULL);
         EVP_PKEY_CTX_set_data(ctx, qat_prf_ctx->sw_prf_ctx_data);
         ret = (*sw_ctrl_fn_ptr)(ctx, type, p1, p2);
@@ -541,7 +536,6 @@ static int build_tls_prf_op_data(QAT_TLS1_PRF_CTX * qat_prf_ctx,
      * constant
      */
     label = qat_prf_ctx->qat_userLabel;
-    DEBUG("Value of label = %s\n", (char *)label);
 
     prf_op_data->userLabel.pData = NULL;
     prf_op_data->userLabel.dataLenInBytes = 0;
@@ -566,7 +560,6 @@ static int build_tls_prf_op_data(QAT_TLS1_PRF_CTX * qat_prf_ctx,
     } else {
         /* Allocate and copy the user label contained in userLabel */
         /* TODO we must test this case to see if it works OK */
-        DEBUG("Using USER_DEFINED label = %s\n", (char*)label);
         prf_op_data->tlsOp = (CpaCyKeyTlsOp) CPA_CY_KEY_TLS_OP_USER_DEFINED;
         prf_op_data->userLabel.pData = (Cpa8U *) qat_prf_ctx->qat_userLabel;
         prf_op_data->userLabel.dataLenInBytes = qat_prf_ctx->qat_userLabel_len;
@@ -732,15 +725,12 @@ int qat_prf_tls_derive(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *olen)
     md_nid = EVP_MD_type(qat_prf_ctx->qat_md);
 #if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
     if (qat_openssl3_prf_fallback == 1) {
-        DEBUG("- Switched to software mode\n");
         fallback = 1;
         goto err;
     }
 #endif
 
-    DEBUG("QAT HW PRF Started\n");
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode\n");
         fallback = 1;
         goto err;
     }
@@ -748,7 +738,6 @@ int qat_prf_tls_derive(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *olen)
 #ifdef QAT_DRIVER_INTREE
     if (md_nid == NID_md5_sha1) {
         if (qat_get_sw_fallback_enabled()){
-            DEBUG("TLS < 1.2 not supported. Fallback to software\n");
             fallback = 1;
             goto err;
         }
@@ -850,13 +839,11 @@ int qat_prf_tls_derive(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *olen)
         DUMP_KEYGEN_TLS(qat_instance_handles[inst_num], generated_key);
         /* Call the function of CPA according the to the version of TLS */
         if (md_nid != NID_md5_sha1) {
-            DEBUG("Calling cpaCyKeyGenTls2 \n");
             status =
                 cpaCyKeyGenTls2(qat_instance_handles[inst_num], qat_prf_cb,
                                 &op_done, &prf_op_data, hash_algo,
                                 generated_key);
         } else {
-            DEBUG("Calling cpaCyKeyGenTls \n");
             status =
                 cpaCyKeyGenTls(qat_instance_handles[inst_num], qat_prf_cb, &op_done,
                                &prf_op_data, generated_key);

@@ -148,7 +148,6 @@ void process_ecdsa_sm2_sign_reqs(mb_thread_data *tlv)
     START_RDTSC(&ecdsa_cycles_sign_execute);
 
     /* Build Arrays of pointers for call */
-    DEBUG("Dequeue ECDSA SM2 sign reqs.\n");
     while ((ecdsa_sm2_sign_req_array[req_num] =
                 mb_queue_ecdsa_sm2_sign_dequeue(tlv->ecdsa_sm2_sign_queue)) != NULL) {
         sign_r[req_num] = ecdsa_sm2_sign_req_array[req_num]->sign_r;
@@ -169,7 +168,6 @@ void process_ecdsa_sm2_sign_reqs(mb_thread_data *tlv)
     }
     local_request_no = req_num;
 
-    DEBUG("Submitting %d ECDSA SM2 sign requests\n", local_request_no);
     sts = mbx_sm2_ecdsa_sign_ssl_mb8(sign_r,
                                      sign_s,
                                      id,
@@ -187,7 +185,6 @@ void process_ecdsa_sm2_sign_reqs(mb_thread_data *tlv)
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (ecdsa_sm2_sign_req_array[req_num]->sts != NULL) {
             if (MBX_GET_STS(sts, req_num) == MBX_STATUS_OK) {
-                DEBUG("Multibuffer ECDSA SM2 Sign request[%d] success\n", req_num);
                 *ecdsa_sm2_sign_req_array[req_num]->sts = 1;
             } else {
                 WARN("Multibuffer ECDSA SM2 Sign request[%d] failure - sts %d\n",
@@ -211,7 +208,6 @@ void process_ecdsa_sm2_sign_reqs(mb_thread_data *tlv)
 # endif
 
     STOP_RDTSC(&ecdsa_cycles_sign_execute, 1, "[ECDSA:sign_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 void process_ecdsa_sm2_verify_reqs(mb_thread_data *tlv)
@@ -249,7 +245,6 @@ void process_ecdsa_sm2_verify_reqs(mb_thread_data *tlv)
     }
     local_request_no = req_num;
 
-    DEBUG("Submitting %d ECDSA_SM2 verify requests\n", local_request_no);
     sts = mbx_sm2_ecdsa_verify_ssl_mb8(sig,
                                        id,
                                        id_len,
@@ -263,7 +258,6 @@ void process_ecdsa_sm2_verify_reqs(mb_thread_data *tlv)
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (ecdsa_sm2_verify_req_array[req_num]->sts != NULL) {
             if (MBX_GET_STS(sts, req_num) == MBX_STATUS_OK) {
-                DEBUG("Multibuffer ECDSA_SM2 Verify request[%d] success\n", req_num);
                 *ecdsa_sm2_verify_req_array[req_num]->sts = 1;
             } else {
                 WARN("Multibuffer ECDSA_SM2 Verify request[%d] failure - sts %d\n",
@@ -287,7 +281,6 @@ void process_ecdsa_sm2_verify_reqs(mb_thread_data *tlv)
 # endif
 
     STOP_RDTSC(&ecdsa_cycles_verify_execute, 1, "[ECDSA:verify_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 /* OpenSSL Softare implementation for synchronous requests,
@@ -658,7 +651,6 @@ int mb_ecdsa_sm2_sign(EVP_MD_CTX *mctx,
     const EC_KEY *eckey = EVP_PKEY_get0_EC_KEY(pkey);
 # endif
 
-    DEBUG("Entering \n");
     if (unlikely(eckey == NULL) || unlikely(siglen == NULL)) {
         WARN("Invalid Input params\n");
         QATerr(QAT_F_MB_ECDSA_SM2_SIGN, QAT_R_INPUT_PARAM_INVALID);
@@ -699,7 +691,6 @@ int mb_ecdsa_sm2_sign(EVP_MD_CTX *mctx,
 
 # if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
     if (qat_openssl3_sm2_fallback == 1) {
-        DEBUG("- Switched to software mode\n");
         goto use_sw_method;
     }
 # endif
@@ -710,13 +701,11 @@ int mb_ecdsa_sm2_sign(EVP_MD_CTX *mctx,
 
     /* Check if we are running asynchronously */
     if ((job = ASYNC_get_current_job()) == NULL) {
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
     }
 
     /* Setup asynchronous notifications */
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 
@@ -732,7 +721,6 @@ int mb_ecdsa_sm2_sign(EVP_MD_CTX *mctx,
         qat_pause_job(job, ASYNC_STATUS_EAGAIN);
     }
 
-    DEBUG("QAT SW ECDSA SM2 Sign Started %p\n", ecdsa_sm2_sign_req);
     START_RDTSC(&ecdsa_cycles_sign_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -822,7 +810,6 @@ int mb_ecdsa_sm2_sign(EVP_MD_CTX *mctx,
     STOP_RDTSC(&ecdsa_cycles_sign_setup, 1, "[ECDSA:sign_setup]");
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -831,7 +818,6 @@ int mb_ecdsa_sm2_sign(EVP_MD_CTX *mctx,
         }
     }
 
-    DEBUG("Pausing: %p status = %d\n", ecdsa_sm2_sign_req, sts);
     do {
         /* If we get a failure on qat_pause_job then we will
          * not flag an error here and quit because we have
@@ -845,7 +831,6 @@ int mb_ecdsa_sm2_sign(EVP_MD_CTX *mctx,
             sched_yield();
     } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-    DEBUG("Finished: %p status = %d\n", ecdsa_sm2_sign_req, sts);
 
     if (sts) {
         /* Convert the buffers to BN */
@@ -854,7 +839,6 @@ int mb_ecdsa_sm2_sign(EVP_MD_CTX *mctx,
 
         *siglen = i2d_ECDSA_SIG(s, &sig);
 
-        DEBUG("siglen %zu, tbslen %zu\n", *siglen, tbslen);
         ECDSA_SIG_free(s);
         ret = 1;
     } else {
@@ -930,7 +914,6 @@ use_sw_method:
     sts = (*psign)(pctx, sig, siglen, dgst, dlen);
     OPENSSL_free(dgst);
     BN_free(e);
-    DEBUG("SW Finished\n");
     return sts;
 # endif
 #endif
@@ -1017,7 +1000,6 @@ int mb_ecdsa_sm2_verify(EVP_MD_CTX *mctx,
 
 # if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
     if (qat_openssl3_sm2_fallback == 1) {
-        DEBUG("- Switched to software mode\n");
         goto use_sw_method;
     }
 # endif
@@ -1028,13 +1010,11 @@ int mb_ecdsa_sm2_verify(EVP_MD_CTX *mctx,
 
     /* Check if we are running asynchronously */
     if ((job = ASYNC_get_current_job()) == NULL) {
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
     }
 
     /* Setup asynchronous notifications */
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 
@@ -1050,7 +1030,6 @@ int mb_ecdsa_sm2_verify(EVP_MD_CTX *mctx,
         qat_pause_job(job, ASYNC_STATUS_EAGAIN);
     }
 
-    DEBUG("QAT SW ECDSA SM2 Verify Started %p\n", ecdsa_sm2_verify_req);
     START_RDTSC(&ecdsa_cycles_verify_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -1124,7 +1103,6 @@ int mb_ecdsa_sm2_verify(EVP_MD_CTX *mctx,
     STOP_RDTSC(&ecdsa_cycles_verify_setup, 1, "[ECDSA:verify_setup]");
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -1133,7 +1111,6 @@ int mb_ecdsa_sm2_verify(EVP_MD_CTX *mctx,
         }
     }
 
-    DEBUG("Pausing: %p status = %d\n", ecdsa_sm2_verify_req, sts);
     do {
         /* If we get a failure on qat_pause_job then we will
          * not flag an error here and quit because we have
@@ -1147,7 +1124,6 @@ int mb_ecdsa_sm2_verify(EVP_MD_CTX *mctx,
             sched_yield();
     } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-    DEBUG("Finished: %p status = %d\n", ecdsa_sm2_verify_req, sts);
 
     if (sts) {
         ret = 1;
@@ -1226,7 +1202,6 @@ use_sw_method:
     sts = (*pverify)(pctx, sig, siglen, dgst, dlen);
     OPENSSL_free(dgst);
     BN_free(e);
-    DEBUG("SW Finished, ret: %d\n", sts);
     return sts;
 # endif
 #endif /* QAT_OPENSSL_PROVIDER */

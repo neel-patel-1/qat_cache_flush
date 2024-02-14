@@ -128,7 +128,6 @@ static int qat_session_data_init(EVP_CIPHER_CTX *ctx,
 #ifdef QAT_OPENSSL_PROVIDER
    QAT_GCM_CTX *qctx = (QAT_GCM_CTX *)vctx;
 #endif
-    DEBUG("QAT HW GCM Started\n");
     if (NULL == qctx || NULL == ctx) {
         WARN("qctx or ctx is NULL\n");
         QATerr(QAT_F_QAT_SESSION_DATA_INIT, QAT_R_QCTX_CTX_NULL);
@@ -293,7 +292,6 @@ int qat_aes_gcm_init(EVP_CIPHER_CTX *ctx,
          (void*)ctx, (void*)inkey, (void*)iv, enc);
 
     if (!inkey && !iv) {
-        DEBUG("key and IV not set\n");
         return 1;
     }
 
@@ -661,12 +659,10 @@ int qat_aes_gcm_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr)
             /* Allocate the memory only the first time */
             if (qctx->tls_aad_len < 0) {
                 int aad_buffer_len = TLS_VIRT_HDR_SIZE;
-                DEBUG("Allocating memory for AAD in TLS sync\n");
                 /* For QAT the length of the buffer for AAD must be multiple
                  * of block size */
                 if (aad_buffer_len % AES_BLOCK_SIZE) {
                     aad_buffer_len += AES_BLOCK_SIZE - (aad_buffer_len % AES_BLOCK_SIZE);
-                    DEBUG("Adjusting AAD buffer length = %d\n", aad_buffer_len);
                 }
                 qctx->aad = qat_mem_alloc(aad_buffer_len, qctx->qat_svm, __FILE__, __LINE__);
                 if (NULL == qctx->aad) {
@@ -698,7 +694,6 @@ int qat_aes_gcm_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr)
                     << QAT_BYTE_SHIFT |
                     qctx->aad[arg - QAT_GCM_TLS_PAYLOADLENGTH_LSB_OFFSET];
 
-            DEBUG("IN plen = %d\n", plen);
             DUMPL("IN qctx->aad", qctx->aad, TLS_VIRT_HDR_SIZE);
 
             /* The payload contains the explicit IV -> correct the length */
@@ -715,7 +710,6 @@ int qat_aes_gcm_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr)
             qctx->aad[TLS_VIRT_HDR_SIZE - QAT_GCM_TLS_PAYLOADLENGTH_LSB_OFFSET]
               = plen;
 
-            DEBUG("OUT plen = %d\n", plen);
             DUMPL("OUT qctx->aad", qctx->aad, TLS_VIRT_HDR_SIZE);
 
             /* Return the length of the TAG */
@@ -760,7 +754,6 @@ int qat_aes_gcm_cleanup(EVP_CIPHER_CTX *ctx)
     CpaBoolean sessionInUse = CPA_FALSE;
     int ret_val = 1;
 
-    DEBUG("- Entering\n");
 
     if (NULL == ctx) {
         WARN("ctx is NULL\n");
@@ -848,7 +841,6 @@ static void qat_gcm_cb(void *pCallbackTag, CpaStatus status,
     if (enable_heuristic_polling) {
         QAT_ATOMIC_DEC(num_cipher_pipeline_requests_in_flight);
     }
-    DEBUG("status is = %d  | verifyResult is  = %d | tag function called %p \n", status, verifyResult, (struct COMPLETION_STRUCT *)pCallbackTag);
     qat_crypto_callbackFn(pCallbackTag, status, CPA_CY_SYM_OP_CIPHER, pOpData,
                           NULL, verifyResult);
 }
@@ -882,7 +874,6 @@ static int qat_aes_gcm_session_init(EVP_CIPHER_CTX *ctx)
     CpaCySymSessionCtx pSessionCtx = NULL;
     int numBuffers = 1, enc = 0;
 
-    DEBUG("- Entering\n");
 
     if (NULL == ctx) {
         WARN("parameter ctx is NULL\n");
@@ -931,10 +922,8 @@ static int qat_aes_gcm_session_init(EVP_CIPHER_CTX *ctx)
     /* Update digestResultLenInBytes with qctx->tag_len if both lengths
        are mismatch for decryption */
     if (!enc) {
-        DEBUG("digestResultLenInBytes = %d, tag len = %d\n", sessionSetupData->hashSetupData.digestResultLenInBytes, qctx->tag_len);
         if (!(qctx->tag_len < 0) && sessionSetupData->hashSetupData.digestResultLenInBytes != qctx->tag_len) {
             sessionSetupData->hashSetupData.digestResultLenInBytes = qctx->tag_len;
-            DEBUG("Taglen updated\n");
         }
     }
 
@@ -1300,23 +1289,17 @@ int qat_aes_gcm_tls_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     if (enc) {
         *padlen = len;
         ret_val = 1;
-        DEBUG("Encryption succeeded\n");
     } else if (CPA_TRUE == op_done.verifyResult) {
         *padlen = message_len;
         ret_val = 1;
-        DEBUG("Decryption succeeded\n");
     } else {
-        DEBUG("Decryption failed\n");
     }
 #else
     if (enc) {
         ret_val = len;
-        DEBUG("Encryption succeeded\n");
     } else if (CPA_TRUE == op_done.verifyResult) {
         ret_val = message_len;
-        DEBUG("Decryption succeeded\n");
     } else {
-        DEBUG("Decryption failed\n");
     }
 #endif
 
@@ -1337,7 +1320,6 @@ int qat_aes_gcm_tls_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 err:
     /* Don't reuse the IV */
     qctx->iv_set = 0;
-    DEBUG("Function result = %d\n",ret_val);
     return ret_val;
 }
 
@@ -1470,7 +1452,6 @@ int qat_aes_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     if (in) {
         /* This is called when doing Update */
         if (NULL == out) {
-            DEBUG("in != NULL && out == NULL -> Adding AAD\n");
             aad_len = len;
 
             /* Check if the length of the AAD has changed */
@@ -1485,7 +1466,6 @@ int qat_aes_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
                 aad_buffer_len = aad_len;
                 if (aad_buffer_len % AES_BLOCK_SIZE) {
                     aad_buffer_len += AES_BLOCK_SIZE - (aad_buffer_len % AES_BLOCK_SIZE);
-                    DEBUG("Adjusting AAD buffer length = %d\n", aad_buffer_len);
                 }
                 if (!qctx->qat_svm) {
                     qctx->aad = qaeCryptoMemAlloc(aad_buffer_len, __FILE__, __LINE__);
@@ -1677,9 +1657,7 @@ int qat_aes_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
             if (enc) {
                 if (CPA_TRUE == op_done.verifyResult){
                     ret_val = len;
-                    DEBUG("Encryption succeeded\n");
                 } else {
-                    DEBUG("Encryption failed\n");
                 }
 
             } else {
@@ -1687,9 +1665,7 @@ int qat_aes_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
                    OpenSSL Speed tests as tag will not be set */
                 if (CPA_TRUE == op_done.verifyResult || qctx->tag_len < 0) {
                     ret_val = len;
-                    DEBUG("Decryption succeeded\n");
                 } else {
-                    DEBUG("Decryption failed\n");
                 }
             }
 
@@ -1730,14 +1706,12 @@ int qat_aes_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
                 return RET_FAIL;
             /* Don't reuse the IV */
             qctx->iv_set = 0;
-            DEBUG("Decrypt Final()\n");
             /* The SW implem here compares the TAGs and returns -1 if they are different.
              * Now the TAGs are checked when decrypting the payload so Final always return success
              */
             return RET_SUCCESS;
         }
 
-        DEBUG("Encrypt Final()\n");
 
         /* The SW implem here copy the TAG to ctx->buf so that it can be
          * retrieved using ctrl() with GET_TAG.

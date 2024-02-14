@@ -106,7 +106,6 @@ void process_x25519_keygen_reqs(mb_thread_data *tlv)
             break;
     }
     local_request_no = req_num;
-    DEBUG("Submitting %d keygen requests\n", local_request_no);
     num_ecx_sw_keygen_reqs += local_request_no;
 
     x25519_sts = mbx_x25519_public_key_mb8(x25519_keygen_pubkey,
@@ -115,7 +114,6 @@ void process_x25519_keygen_reqs(mb_thread_data *tlv)
     for (req_num = 0; req_num < local_request_no; req_num++) {
 	    if (x25519_keygen_req_array[req_num]->sts != NULL) {
              if (MBX_GET_STS(x25519_sts, req_num) == MBX_STATUS_OK) {
-                 DEBUG("Multibuffer Keygen request[%d] success\n", req_num);
                  *x25519_keygen_req_array[req_num]->sts = 1;
              } else {
                  WARN("Multibuffer Keygen request[%d] failure\n", req_num);
@@ -136,7 +134,6 @@ void process_x25519_keygen_reqs(mb_thread_data *tlv)
 # endif
 
     STOP_RDTSC(&x25519_cycles_keygen_execute, 1, "[X25519:keygen_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 void process_x25519_derive_reqs(mb_thread_data *tlv)
@@ -163,7 +160,6 @@ void process_x25519_derive_reqs(mb_thread_data *tlv)
             break;
     }
     local_request_no = req_num;
-    DEBUG("Submitting %d derive requests\n", local_request_no);
     num_ecx_sw_derive_reqs += local_request_no;
 
     x25519_sts = mbx_x25519_mb8(x25519_derive_sharedkey,
@@ -172,7 +168,6 @@ void process_x25519_derive_reqs(mb_thread_data *tlv)
 
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (MBX_GET_STS(x25519_sts, req_num) == MBX_STATUS_OK) {
-            DEBUG("Multibuffer Derive request[%d] success\n", req_num);
             *x25519_derive_req_array[req_num]->sts = 1;
         } else {
             WARN("Multibuffer Derive request[%d] Failure\n", req_num);
@@ -192,7 +187,6 @@ void process_x25519_derive_reqs(mb_thread_data *tlv)
 # endif
 
     STOP_RDTSC(&x25519_cycles_derive_execute, 1, "[X25519:derive_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 #ifdef QAT_OPENSSL_PROVIDER
@@ -235,7 +229,6 @@ int multibuff_x25519_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey)
     /* Check if we are running asynchronously. If not use the SW method */
     if ((job = ASYNC_get_current_job()) == NULL) {
 #ifndef ENABLE_QAT_FIPS
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
 #endif
     }
@@ -243,12 +236,10 @@ int multibuff_x25519_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey)
     /* Setup asynchronous notifications */
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL && !qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications.\n");
         return NULL;
     }
 #else
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 #endif
@@ -276,7 +267,6 @@ int multibuff_x25519_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey)
 #endif
     }
 
-    DEBUG("QAT SW ECX Started %p\n", x25519_keygen_req);
     START_RDTSC(&x25519_cycles_keygen_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -331,7 +321,6 @@ int multibuff_x25519_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey)
 #endif
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -340,7 +329,6 @@ int multibuff_x25519_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey)
         }
      }
 
-    DEBUG("Pausing: %p status = %d\n", x25519_keygen_req, sts);
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL) {
 #endif
@@ -357,7 +345,6 @@ int multibuff_x25519_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey)
                 sched_yield();
         } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-        DEBUG("Finished: %p status = %d\n", x25519_keygen_req, sts);
 #ifdef ENABLE_QAT_FIPS
     }
 #endif
@@ -394,13 +381,11 @@ err:
 
 use_sw_method:
 # ifdef QAT_OPENSSL_PROVIDER
-    DEBUG("SW Finished\n");
     return sw_fn_ptr(ctx, osslcb, cbarg);
 # else
     EVP_PKEY_meth_get_keygen((EVP_PKEY_METHOD *)sw_x25519_pmeth,
                              NULL, &sw_fn_ptr);
     sts = (*sw_fn_ptr)(ctx, pkey);
-    DEBUG("SW Finished\n");
     return sts;
 # endif
 }
@@ -433,19 +418,16 @@ static int multibuff_validate_ecx_derive(EVP_PKEY_CTX *ctx,
 
     if ((pkey = EVP_PKEY_CTX_get0_pkey(ctx)) == NULL ||
         (peerkey = EVP_PKEY_CTX_get0_peerkey(ctx)) == NULL) {
-        DEBUG("ctx->pkey or ctx->peerkey is NULL\n");
         QATerr(QAT_F_MULTIBUFF_VALIDATE_ECX_DERIVE, QAT_R_KEYS_NOT_SET);
         return 0;
     }
     ecxkey = (const QAT_SW_ECX_KEY *)EVP_PKEY_get0((const EVP_PKEY *)pkey);
     peerecxkey = (const QAT_SW_ECX_KEY *)EVP_PKEY_get0((const EVP_PKEY *)peerkey);
     if (ecxkey == NULL || ecxkey->privkey == NULL) {
-        DEBUG("ecxkey or ecxkey->privkey is NULL\n");
         QATerr(QAT_F_MULTIBUFF_VALIDATE_ECX_DERIVE, QAT_R_INVALID_PRIVATE_KEY);
         return 0;
     }
     if (peerecxkey == NULL) {
-        DEBUG("peerecxkey is NULL\n");
         QATerr(QAT_F_MULTIBUFF_VALIDATE_ECX_DERIVE, QAT_R_INVALID_PEER_KEY);
         return 0;
     }
@@ -495,7 +477,6 @@ int multibuff_x25519_derive(EVP_PKEY_CTX *ctx,
     /* Check if we are running asynchronously. If not use the SW method */
     if ((job = ASYNC_get_current_job()) == NULL) {
 #ifndef ENABLE_QAT_FIPS
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
 #endif
     }
@@ -503,12 +484,10 @@ int multibuff_x25519_derive(EVP_PKEY_CTX *ctx,
     /* Setup asynchronous notifications */
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL && !qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications.\n");
         return sts;
     }
 #else
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 #endif
@@ -536,7 +515,6 @@ int multibuff_x25519_derive(EVP_PKEY_CTX *ctx,
 #endif
     }
 
-    DEBUG("QAT SW ECX Started %p\n", x25519_derive_req);
     START_RDTSC(&x25519_cycles_derive_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -559,7 +537,6 @@ int multibuff_x25519_derive(EVP_PKEY_CTX *ctx,
 #endif
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -568,7 +545,6 @@ int multibuff_x25519_derive(EVP_PKEY_CTX *ctx,
         }
      }
 
-    DEBUG("Pausing: %p status = %d\n", x25519_derive_req, sts);
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL) {
 #endif
@@ -585,7 +561,6 @@ int multibuff_x25519_derive(EVP_PKEY_CTX *ctx,
                 sched_yield();
         } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-        DEBUG("Finished: %p status = %d\n", x25519_derive_req, sts);
 #ifdef ENABLE_QAT_FIPS
     }
 #endif
@@ -601,12 +576,10 @@ int multibuff_x25519_derive(EVP_PKEY_CTX *ctx,
 
 use_sw_method:
 # ifdef QAT_OPENSSL_PROVIDER
-    DEBUG("SW Finished\n");
     return sw_fn_ptr(ctx, key, keylen, outlen);
 # else
     EVP_PKEY_meth_get_derive((EVP_PKEY_METHOD *)sw_x25519_pmeth, NULL, &sw_fn_ptr);
     sts = (*sw_fn_ptr)(ctx, key, keylen);
-    DEBUG("SW Finished\n");
     return sts;
 # endif
 }

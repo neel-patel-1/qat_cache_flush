@@ -218,7 +218,6 @@ int qat_adjust_thread_affinity(pthread_t threadptr)
     }
 
     if (CPU_ISSET(coreID, &cpuset)) {
-        DEBUG("Polling thread assigned on CPU core %d\n", coreID);
     }
 # endif
     return 1;

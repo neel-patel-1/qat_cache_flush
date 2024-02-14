@@ -158,11 +158,9 @@ const EVP_CIPHER *chachapoly_cipher_meth(int nid, int keylen)
         }
 
         qat_hw_chacha_poly_offload = 1;
-        DEBUG("QAT HW CHACHA POLY registration succeeded\n");
         return c;
     } else {
         qat_hw_chacha_poly_offload = 0;
-        DEBUG("QAT HW CHACHA POLY is disabled, using OpenSSL SW\n");
         EVP_CIPHER_meth_free(c);
         return EVP_chacha20_poly1305();
     }
@@ -444,7 +442,6 @@ static int qat_chachapoly_session_data_init(qat_chachapoly_ctx *cp_ctx,
         return 0;
     }
     cp_ctx->qat_svm = !qat_instance_details[cp_ctx->inst_num].qat_instance_info.requiresPhysicallyContiguousMemory;
-    DEBUG("inst_num = %d inst mem type %d \n", cp_ctx->inst_num, cp_ctx->qat_svm);
 
     if (cp_ctx->mac_key == NULL) {
         cp_ctx->mac_key = qat_mem_alloc(QAT_CHACHA_BLK_SIZE, cp_ctx->qat_svm,  __FILE__, __LINE__);
@@ -518,7 +515,6 @@ static int qat_chachapoly_session_data_init(qat_chachapoly_ctx *cp_ctx,
                        ERR_R_INTERNAL_ERROR);
                 return 0;
             }
-            DEBUG("Poly1305 key generated\n");
         }
         cp_ctx->session_data->cipherSetupData.pCipherKey = cp_ctx->cipher_key;
 
@@ -536,7 +532,6 @@ static int qat_chachapoly_session_data_init(qat_chachapoly_ctx *cp_ctx,
     }
     /* Mark session context init as set. */
     cp_ctx->context_params_set = 1;
-    DEBUG("Chachapoly context init set.\n");
 
     return 1;
 }
@@ -604,7 +599,6 @@ static int qat_chacha20_poly1305_init(EVP_CIPHER_CTX *ctx,
 
     /* Return 1 since it's not an error if key and IV not set. */
     if (!user_key && !iv) {
-        DEBUG("key and IV not set.\n");
         return 1;
     }
 
@@ -667,7 +661,6 @@ static int qat_chachapoly_setup_op_params(qat_chachapoly_ctx *cp_ctx)
         return 0;
     }
 
-    DEBUG("Size of session ctx = %d\n", sctx_size);
     cp_ctx->session_ctx = (CpaCySymSessionCtx) qat_mem_alloc(sctx_size, cp_ctx->qat_svm,
                                                 __FILE__, __LINE__);
     if (cp_ctx->session_ctx == NULL) {
@@ -704,7 +697,6 @@ static int qat_chachapoly_setup_op_params(qat_chachapoly_ctx *cp_ctx)
         return 0;
     }
 
-    DEBUG("Buffer MetaSize : %d\n", bufferMetaSize);
     cp_ctx->pSrcBufferList.numBuffers = numBuffers;
     cp_ctx->pDstBufferList.numBuffers = numBuffers;
 
@@ -824,7 +816,6 @@ static int qat_chacha20_poly1305_tls_cipher(EVP_CIPHER_CTX * ctx, unsigned char 
     if ( (len - QAT_POLY1305_BLOCK_SIZE) <=
           qat_pkt_threshold_table_get_threshold(ctx->nid)) {
         int sw_final_len = 0;
-        DEBUG("Using OpenSSL SW for Packetsize %zu\n", len);
         if (!EVP_CipherUpdate(ctx->sw_ctx, out, &outlen, in, len))
             goto cleanup;
         if (!EVP_CipherFinal_ex(ctx->sw_ctx, out + outlen, &sw_final_len))
@@ -835,7 +826,6 @@ static int qat_chacha20_poly1305_tls_cipher(EVP_CIPHER_CTX * ctx, unsigned char 
 # else
     if ( (len - QAT_POLY1305_BLOCK_SIZE) <=
         qat_pkt_threshold_table_get_threshold(EVP_CIPHER_CTX_nid(ctx))) {
-        DEBUG("Using OpenSSL SW for Packetsize %zu\n", len);
         EVP_CIPHER_CTX_set_cipher_data(ctx, cp_ctx->sw_ctx_cipher_data);
         retVal = EVP_CIPHER_meth_get_do_cipher(GET_SW_CHACHA_CTX)
                  (ctx, out, in, len);
@@ -858,7 +848,6 @@ static int qat_chacha20_poly1305_tls_cipher(EVP_CIPHER_CTX * ctx, unsigned char 
 
     /* Actual message length is the input length minus the tag length. */
     cipher_len = len - QAT_POLY1305_DIGEST_SIZE;
-    DEBUG("InputLen %zu, CipherLen %d\n", len, cipher_len);
 
     /* Allocate buffer for HASH and CIPHER operation. */
     if (!cp_ctx->qat_svm)
@@ -991,7 +980,6 @@ static int qat_chacha20_poly1305_tls_cipher(EVP_CIPHER_CTX * ctx, unsigned char 
 
     if (enc) {
         outlen = len;
-        DEBUG("Encryption succeeded.\n");
     } else {
         if (op_done.verifyResult != CPA_TRUE) {
             WARN("Verification of result failed\n");
@@ -1005,7 +993,6 @@ static int qat_chacha20_poly1305_tls_cipher(EVP_CIPHER_CTX * ctx, unsigned char 
             }
         }
         outlen = cipher_len;
-        DEBUG("Decryption succeeded.\n");
     }
     qat_cleanup_op_done(&op_done);
     /* Copy destination buffer into out buffer. */
@@ -1138,7 +1125,6 @@ static int qat_chacha20_poly1305_do_cipher(EVP_CIPHER_CTX * ctx, unsigned char *
             memcpy(cp_ctx->tls_aad, in, len);
             DUMPL("AAD", cp_ctx->tls_aad, len);
 # ifndef ENABLE_QAT_SMALL_PKT_OFFLOAD
-            DEBUG("Using OpenSSL SW for Packetsize %zu\n", len);
 #  ifdef QAT_OPENSSL_PROVIDER
             if (!EVP_CipherUpdate(ctx->sw_ctx, out, &outlen, in, len))
                 goto cleanup;
@@ -1159,7 +1145,6 @@ static int qat_chacha20_poly1305_do_cipher(EVP_CIPHER_CTX * ctx, unsigned char *
             cp_ctx->packet_size = len;
 #  ifndef QAT_OPENSSL_PROVIDER
             if (len <= qat_pkt_threshold_table_get_threshold(EVP_CIPHER_CTX_nid(ctx))) {
-                DEBUG("Using OpenSSL SW for Packetsize %zu\n", len);
                 EVP_CIPHER_CTX_set_cipher_data(ctx, cp_ctx->sw_ctx_cipher_data);
                 retVal = EVP_CIPHER_meth_get_do_cipher(GET_SW_CHACHA_CTX) (ctx, out, in, len);
                 EVP_CIPHER_CTX_set_cipher_data(ctx, cp_ctx);
@@ -1315,7 +1300,6 @@ static int qat_chacha20_poly1305_do_cipher(EVP_CIPHER_CTX * ctx, unsigned char *
             QAT_DEC_IN_FLIGHT_REQS(num_requests_in_flight, tlv);
 
             if (enc) {
-                DEBUG("Encryption succeeded\n");
                 /* Set tag after the encryption operation. */
                 memcpy(cp_ctx->tag, cp_ctx->opd->pDigestResult,
                        QAT_POLY1305_DIGEST_SIZE);
@@ -1334,7 +1318,6 @@ static int qat_chacha20_poly1305_do_cipher(EVP_CIPHER_CTX * ctx, unsigned char *
                         goto do_cipher_err;
                     }
                 } else {
-                    DEBUG("Decryption succeeded\n");
                 }
             }
             outlen = len;
@@ -1420,7 +1403,6 @@ static int qat_chacha20_poly1305_cleanup(EVP_CIPHER_CTX *ctx)
     }
 
     ssd = cp_ctx->session_data;
-    DEBUG("ctx %p, cp_ctx %p, SSD %p\n", ctx, cp_ctx, cp_ctx->session_data);
     if (ssd) {
         if (cp_ctx->session_init) {
             status = cpaCySymRemoveSession(qat_instance_handles[cp_ctx->inst_num],
@@ -1508,7 +1490,6 @@ static int qat_chacha20_poly1305_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg,
     qat_chachapoly_ctx *cp_ctx = qat_chachapoly_data(ctx);
     enc = EVP_CIPHER_CTX_encrypting(ctx);
 #endif
-    DEBUG("Entering ctrl %d\n", type);
 
     switch (type) {
     case EVP_CTRL_INIT:
@@ -1520,7 +1501,6 @@ static int qat_chacha20_poly1305_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg,
                 return -1;
             }
         }
-        DEBUG("ctx %p cp_ctx %p\n", ctx, cp_ctx);
         cp_ctx->tag_len = 0;
         cp_ctx->nonce_len = QAT_CHACHA20_POLY1305_MAX_IVLEN;
         cp_ctx->tls_payload_length = NO_TLS_PAYLOAD_LENGTH;

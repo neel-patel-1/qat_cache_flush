@@ -161,12 +161,10 @@ void crypto_qat_debug_init_log()
 {
     pthread_mutex_lock(&debug_file_mutex);
     if (!debug_file_ref_count) {
-        qatDebugLogFile = fopen(STR(QAT_DEBUG_FILE_PATH), "w");
 
         if (NULL == qatDebugLogFile) {
             qatDebugLogFile = stderr;
             WARN("unable to open %s\n",
-                 STR(QAT_DEBUG_FILE_PATH));
         } else {
             debug_file_ref_count++;
         }

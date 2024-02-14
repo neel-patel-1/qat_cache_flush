@@ -358,11 +358,9 @@ const EVP_MD *qat_sw_create_sm3_meth(int nid , int key_type)
         }
 
         qat_sw_sm3_offload = 1;
-        DEBUG("QAT SW SM3 Registration succeeded\n");
         return qat_sw_sm3_meth;
     } else {
         qat_sw_sm3_offload = 0;
-        DEBUG("QAT SW SM3 is disabled, using OpenSSL SW\n");
 # if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
         qat_openssl3_sm3_fallback = 1;
         res = qat_sw_sm3_md_methods(qat_sw_sm3_meth);
@@ -378,7 +376,6 @@ const EVP_MD *qat_sw_create_sm3_meth(int nid , int key_type)
     }
 #else
     qat_sw_sm3_offload = 0;
-    DEBUG("QAT SW SM3 is disabled, using OpenSSL SW\n");
     return (EVP_MD *)EVP_sm3();
 #endif
 }
@@ -599,18 +596,15 @@ EVP_PKEY_METHOD *qat_x25519_pmeth(void)
         EVP_PKEY_meth_set_ctrl(_hidden_x25519_pmeth, qat_pkey_ecx_ctrl, NULL);
 # endif
         qat_hw_ecx_offload = 1;
-        DEBUG("QAT HW X25519 registration succeeded\n");
 # ifdef ENABLE_QAT_SW_ECX
         if (qat_sw_offload &&
             (qat_sw_algo_enable_mask & ALGO_ENABLE_MASK_ECX25519) &&
             mbx_get_algo_info(MBX_ALGO_X25519)) {
             qat_ecx_coexist = 1;
-            DEBUG("QAT ECX25519 HW&SW Coexistence is enabled \n");
         }
 # endif
     } else {
         qat_hw_ecx_offload = 0;
-        DEBUG("QAT HW X25519 is disabled\n");
     }
 #endif
 
@@ -620,10 +614,8 @@ EVP_PKEY_METHOD *qat_x25519_pmeth(void)
         mbx_get_algo_info(MBX_ALGO_X25519)) {
         qat_ecx25519_pkey_methods();
         qat_sw_ecx_offload = 1;
-        DEBUG("QAT SW X25519 registration succeeded\n");
     } else {
         qat_sw_ecx_offload = 0;
-        DEBUG("QAT SW X25519 disabled\n");
     }
 
 # if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
@@ -673,7 +665,6 @@ EVP_PKEY_METHOD *qat_x448_pmeth(void)
         EVP_PKEY_meth_set_ctrl(_hidden_x448_pmeth, qat_pkey_ecx_ctrl, NULL);
 # endif
         qat_hw_ecx_offload = 1;
-        DEBUG("QAT HW ECDH X448 Registration succeeded\n");
     } else {
         qat_hw_ecx_offload = 0;
     }
@@ -683,7 +674,6 @@ EVP_PKEY_METHOD *qat_x448_pmeth(void)
 
     if (!qat_hw_ecx_offload) {
         EVP_PKEY_meth_copy(_hidden_x448_pmeth, sw_x448_pmeth);
-        DEBUG("QAT HW ECDH X448 is disabled, using OpenSSL SW\n");
     }
 
     return _hidden_x448_pmeth;
@@ -774,7 +764,6 @@ int qat_pkey_methods(ENGINE *e, EVP_PKEY_METHOD **pmeth,
 
 static inline const EVP_CIPHER *qat_gcm_cipher_sw_impl(int nid)
 {
-	DEBUG("CHOOSING EVP_CIPHER\n");
     switch (nid) {
         case NID_aes_128_gcm:
             return EVP_aes_128_gcm();
@@ -851,10 +840,8 @@ const EVP_CIPHER *qat_create_gcm_cipher_meth(int nid, int keylen)
         }
 
         qat_sw_gcm_offload = 1;
-        DEBUG("QAT SW AES_GCM_%d registration succeeded\n", keylen*8);
     } else {
         qat_sw_gcm_offload = 0;
-        DEBUG("QAT SW AES_GCM_%d is disabled\n", keylen*8);
     }
 #endif
 
@@ -863,7 +850,6 @@ const EVP_CIPHER *qat_create_gcm_cipher_meth(int nid, int keylen)
         (qat_hw_algo_enable_mask & ALGO_ENABLE_MASK_AES_GCM)) {
         if (nid == NID_aes_192_gcm) {
             EVP_CIPHER_meth_free(c);
-            DEBUG("OpenSSL SW AES_GCM_%d registration succeeded\n", keylen*8);
             return qat_gcm_cipher_sw_impl(nid);
         }
 
@@ -889,15 +875,12 @@ const EVP_CIPHER *qat_create_gcm_cipher_meth(int nid, int keylen)
         }
 
         qat_hw_gcm_offload = 1;
-        DEBUG("QAT HW AES_GCM_%d registration succeeded\n", keylen*8);
     } else {
         qat_hw_gcm_offload = 0;
-        DEBUG("QAT HW AES_GCM_%d is disabled\n", keylen*8);
     }
 #endif
 
     if (!qat_sw_gcm_offload && !qat_hw_gcm_offload) {
-        DEBUG("OpenSSL SW AES_GCM_%d registration succeeded\n", keylen*8);
         EVP_CIPHER_meth_free(c);
         return qat_gcm_cipher_sw_impl(nid);
     }
@@ -933,7 +916,6 @@ const EVP_CIPHER *qat_create_ccm_cipher_meth(int nid, int keylen)
 #if !defined(QAT20_OOT) && !defined(QAT_HW_INTREE)
         if (nid == NID_aes_192_ccm || nid == NID_aes_256_ccm) {
             EVP_CIPHER_meth_free(c);
-            DEBUG("OpenSSL SW AES_CCM_%d registration succeeded\n", keylen*8);
             return qat_ccm_cipher_sw_impl(nid);
         }
 #endif
@@ -955,14 +937,11 @@ const EVP_CIPHER *qat_create_ccm_cipher_meth(int nid, int keylen)
         }
 
         qat_hw_aes_ccm_offload = 1;
-        DEBUG("QAT HW AES_CCM_%d registration succeeded\n", keylen*8);
     } else {
         qat_hw_aes_ccm_offload = 0;
-        DEBUG("QAT HW AES_CCM_%d is disabled\n", keylen*8);
     }
 
     if (!qat_hw_aes_ccm_offload) {
-        DEBUG("OpenSSL SW AES_CCM_%d registration succeeded\n", keylen*8);
         EVP_CIPHER_meth_free(c);
         return qat_ccm_cipher_sw_impl(nid);
     }
@@ -1016,7 +995,6 @@ const EVP_CIPHER *qat_create_sm4_cbc_cipher_meth(int nid, int keylen)
         res &= EVP_CIPHER_meth_set_ctrl(c, NULL);
 #endif
         qat_hw_sm4_cbc_offload = 1;
-        DEBUG("QAT HW SM4_CBC registration succeeded\n");
 
 #ifdef ENABLE_QAT_SW_SM4_CBC
         if (qat_sw_offload && (qat_sw_algo_enable_mask & ALGO_ENABLE_MASK_SM4_CBC) &&
@@ -1024,7 +1002,6 @@ const EVP_CIPHER *qat_create_sm4_cbc_cipher_meth(int nid, int keylen)
             res &= EVP_CIPHER_meth_set_impl_ctx_size(c,
                                     sizeof(qat_sm4_ctx) + sizeof(SM4_CBC_CTX));
             qat_sm4_cbc_coexist = 1;
-            DEBUG("QAT SM4_CBC HW&SW Coexistence is enabled \n");
         }
 # endif
         if (!qat_sm4_cbc_coexist) {
@@ -1038,7 +1015,6 @@ const EVP_CIPHER *qat_create_sm4_cbc_cipher_meth(int nid, int keylen)
         }
     } else {
         qat_hw_sm4_cbc_offload = 0;
-        DEBUG("OpenSSL SW SM4 CBC registration\n");
     }
 #endif
 
@@ -1067,15 +1043,12 @@ const EVP_CIPHER *qat_create_sm4_cbc_cipher_meth(int nid, int keylen)
         }
         
         qat_sw_sm4_cbc_offload = 1;
-        DEBUG("QAT SW SM4-CBC registration succeeded\n");
     } else {
         qat_sw_sm4_cbc_offload = 0;
-        DEBUG("OpenSSL SW SM4 CBC registration\n");
     }
 #endif
 
     if ((qat_hw_sm4_cbc_offload == 0) && (qat_sw_sm4_cbc_offload == 0)) {
-        DEBUG("QAT_HW and QAT_SW SM4-CBC not supported! Using OpenSSL SW method\n");
         EVP_CIPHER_meth_free(c);
 #if defined(ENABLE_QAT_HW_SM4_CBC) || defined(ENABLE_QAT_SW_SM4_CBC)
         return (const EVP_CIPHER *)EVP_sm4_cbc();
@@ -1134,10 +1107,8 @@ const EVP_CIPHER *qat_create_sm4_gcm_cipher_meth(int nid, int keylen)
         }
 
         qat_sw_sm4_gcm_offload = 1;
-        DEBUG("QAT SW SM4 GCM registration succeeded, res=%d\n", res);
     } else {
         qat_sw_sm4_gcm_offload = 0;
-        DEBUG("OpenSSL SW SM4 GCM registration\n");
         return (const EVP_CIPHER *)EVP_sm4_gcm();
     }
     return c;
@@ -1191,14 +1162,11 @@ const EVP_CIPHER *qat_create_sm4_ccm_cipher_meth(int nid, int keylen)
         }
 
         qat_sw_sm4_ccm_offload = 1;
-        DEBUG("QAT SW SM4 CCM registration succeeded, res=%d\n", res);
     } else {
         qat_sw_sm4_ccm_offload = 0;
-        DEBUG("QAT SW SM4-CCM disabled\n");
     }
 
     if (!qat_sw_sm4_ccm_offload) {
-        DEBUG("OpenSSL SW SM4 CCM registration\n");
         EVP_CIPHER_meth_free(c);
         return (const EVP_CIPHER *)EVP_sm4_ccm();
     }
@@ -1297,10 +1265,8 @@ EVP_PKEY_METHOD *qat_create_sm2_pmeth(void)
         EVP_PKEY_meth_set_decrypt(_hidden_sm2_pmeth, NULL, pdecrypt);
 #  endif
         qat_hw_sm2_offload = 1;
-        DEBUG("QAT HW SM2 registration succeeded\n");
     } else {
         qat_hw_sm2_offload = 0;
-        DEBUG("QAT HW SM2 disabled\n");
     }
 # endif /* ENABLE_QAT_HW_SM2 */
 
@@ -1310,13 +1276,11 @@ EVP_PKEY_METHOD *qat_create_sm2_pmeth(void)
         mbx_get_algo_info(MBX_ALGO_X25519)) {
         qat_sm2_pkey_methods();
         qat_sw_sm2_offload = 1;
-        DEBUG("QAT SW SM2 registration succeeded\n");
     } else {
         qat_sw_sm2_offload = 0;
     }
 
     if (!qat_sw_sm2_offload && !qat_hw_sm2_offload) {
-        DEBUG("QAT SW SM2 is disabled, using OpenSSL SW");
 #  ifndef QAT_OPENSSL_3
         return (EVP_PKEY_METHOD *)sw_sm2_pmeth;
 #  else
@@ -1583,7 +1547,6 @@ EC_KEY_METHOD *qat_get_EC_methods(void)
                                  qat_ecdsa_verify,
                                  qat_ecdsa_do_verify);
         qat_hw_ecdsa_offload = 1;
-        DEBUG("QAT HW ECDSA Registration succeeded\n");
 # ifdef ENABLE_QAT_SW_ECDSA
         if (qat_sw_offload &&
         (qat_sw_algo_enable_mask & ALGO_ENABLE_MASK_ECDSA) &&
@@ -1592,12 +1555,10 @@ EC_KEY_METHOD *qat_get_EC_methods(void)
             mbx_get_algo_info(MBX_ALGO_ECDSA_NIST_P256) &&
             mbx_get_algo_info(MBX_ALGO_ECDSA_NIST_P384))) {
             qat_ecdsa_coexist = 1;
-            DEBUG("QAT ECDSA HW&SW Coexistence is enabled \n");
         }
 # endif
     } else {
         qat_hw_ecdsa_offload = 0;
-        DEBUG("QAT HW ECDSA is disabled\n");
     }
 #endif
 
@@ -1633,10 +1594,8 @@ EC_KEY_METHOD *qat_get_EC_methods(void)
                                  mb_ecdsa_do_verify);
 #endif
         qat_sw_ecdsa_offload = 1;
-        DEBUG("QAT SW ECDSA registration succeeded\n");
     } else {
         qat_sw_ecdsa_offload = 0;
-        DEBUG("QAT SW ECDSA is disabled\n");
     }
 #endif
 
@@ -1655,7 +1614,6 @@ EC_KEY_METHOD *qat_get_EC_methods(void)
         EC_KEY_METHOD_set_verify(qat_ec_method,
                                  verify_pfunc,
                                  verify_sig_pfunc);
-        DEBUG("QAT_HW and QAT_SW ECDSA not supported! Using OpenSSL SW method\n");
     }
 
 #ifndef QAT_BORINGSSL
@@ -1664,7 +1622,6 @@ EC_KEY_METHOD *qat_get_EC_methods(void)
         EC_KEY_METHOD_set_keygen(qat_ec_method, qat_ecdh_generate_key);
         EC_KEY_METHOD_set_compute_key(qat_ec_method, qat_engine_ecdh_compute_key);
         qat_hw_ecdh_offload = 1;
-        DEBUG("QAT HW ECDH Registration succeeded\n");
 # ifdef ENABLE_QAT_SW_ECDH
         if (qat_sw_offload &&
             (qat_sw_algo_enable_mask & ALGO_ENABLE_MASK_ECDH) &&
@@ -1673,12 +1630,10 @@ EC_KEY_METHOD *qat_get_EC_methods(void)
             mbx_get_algo_info(MBX_ALGO_ECDSA_NIST_P256) &&
             mbx_get_algo_info(MBX_ALGO_ECDSA_NIST_P384))) {
             qat_ecdh_coexist = 1;
-            DEBUG("QAT ECDH HW&SW Coexistence is enabled \n");
         }
 # endif
     } else {
         qat_hw_ecdh_offload = 0;
-        DEBUG("QAT HW ECDH disabled\n");
     }
 #endif
 
@@ -1692,10 +1647,8 @@ EC_KEY_METHOD *qat_get_EC_methods(void)
         EC_KEY_METHOD_set_keygen(qat_ec_method, mb_ecdh_generate_key);
         EC_KEY_METHOD_set_compute_key(qat_ec_method, mb_ecdh_compute_key);
         qat_sw_ecdh_offload = 1;
-        DEBUG("QAT SW ECDH registration succeeded\n");
     } else {
         qat_sw_ecdh_offload = 0;
-        DEBUG("QAT SW ECDH disabled\n");
     }
 #endif
 
@@ -1704,7 +1657,6 @@ EC_KEY_METHOD *qat_get_EC_methods(void)
          EC_KEY_METHOD_set_keygen(qat_ec_method, gen_key_pfunc);
          EC_KEY_METHOD_get_compute_key(def_ec_meth, &comp_key_pfunc);
          EC_KEY_METHOD_set_compute_key(qat_ec_method, comp_key_pfunc);
-         DEBUG("QAT_HW and QAT_SW ECDH not supported! Using OpenSSL SW method\n");
     }
 #endif /* QAT_BORINGSSL */
 
@@ -1767,7 +1719,6 @@ RSA_METHOD *qat_get_RSA_methods(void)
             return NULL;
         }
         qat_hw_rsa_offload = 1;
-        DEBUG("QAT HW RSA Registration succeeded\n");
 # ifdef ENABLE_QAT_SW_RSA
         if (qat_sw_offload &&
             (qat_sw_algo_enable_mask & ALGO_ENABLE_MASK_RSA) &&
@@ -1775,12 +1726,10 @@ RSA_METHOD *qat_get_RSA_methods(void)
             mbx_get_algo_info(MBX_ALGO_RSA_3K) &&
             mbx_get_algo_info(MBX_ALGO_RSA_4K)) {
             qat_rsa_coexist = 1;
-            DEBUG("QAT RSA HW&SW Coexistence is enabled \n");
         }
 # endif
     } else {
         qat_hw_rsa_offload = 0;
-        DEBUG("QAT HW RSA is disabled\n");
     }
 #endif
 
@@ -1812,16 +1761,13 @@ RSA_METHOD *qat_get_RSA_methods(void)
             return NULL;
         }
         qat_sw_rsa_offload = 1;
-        DEBUG("QAT SW RSA Registration succeeded\n");
     } else {
         qat_sw_rsa_offload = 0;
-        DEBUG("QAT SW RSA is disabled\n");
     }
 #endif
 
     if ((qat_hw_rsa_offload == 0) && (qat_sw_rsa_offload == 0)) {
         def_rsa_method = (RSA_METHOD *)RSA_get_default_method();
-        DEBUG("QAT_HW and QAT_SW RSA not supported! Using OpenSSL SW method\n");
         return def_rsa_method;
     }
 
@@ -1909,7 +1855,6 @@ int qat_pkt_threshold_table_set_threshold(const char *cn , int threshold)
     else if (threshold > 16384)
         threshold = 16384;
 
-    DEBUG("Set small packet threshold for %s: %d\n", cn, threshold);
 
     nid = OBJ_sn2nid(cn);
 

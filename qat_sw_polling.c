@@ -391,14 +391,12 @@ void multibuff_update_req_timeout(mb_req_rates * req_rates)
     if (multibuff_poll_check_for_timeout(mb_poll_timeout_time,
                                          req_rates->previous_time,
                                          req_rates->current_time) == 0) {
-        DEBUG("Currently a timeout period has not elapsed\n");
         return;
     }
     existing_timeout_level = mb_timeout_level;
     mb_timeout_level = multibuff_calc_timeout_level(mb_timeout_level);
     if (mb_timeout_level != existing_timeout_level) {
         multibuff_get_timeout_time(&mb_poll_timeout_time, mb_timeout_level);
-        DEBUG("Adjusting timeout level to: %d\n", mb_timeout_level);
     }
     req_rates->req_this_period = 0;
     req_rates->previous_time = req_rates->current_time;
@@ -455,7 +453,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
     multibuff_init_req_rates(&mb_sm4_ccm_decrypt_req_rates);
 #endif
 
-    DEBUG("Polling Timeout %ld tlv %p\n", mb_poll_timeout_time.tv_nsec, tlv);
 
     while (tlv->keep_polling && qat_sw_keep_polling) {
         get_sem_wait_abs_time(&mb_polling_abs_timeout, mb_poll_timeout_time);
@@ -931,13 +928,11 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             }
         }
 
-        DEBUG("Checking whether we have enough requests to process\n");
 #ifdef ENABLE_QAT_SW_ECX
         if (mb_queue_x25519_keygen_get_size(tlv->x25519_keygen_queue) >= MULTIBUFF_MAX_BATCH) {
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 X25519 keygen requests */
-                DEBUG("8 X25519 keygen requests in flight, process them\n");
                 process_x25519_keygen_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_x25519_keygen_get_size(tlv->x25519_keygen_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -951,7 +946,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 X25519 derive requests */
-                DEBUG("8 X25519 derive requests in flight, process them\n");
                 process_x25519_derive_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_x25519_derive_get_size(tlv->x25519_derive_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -967,7 +961,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDSA p256 Sign requests */
-                DEBUG("8 ECDSA p256 Sign requests in flight, process them\n");
                 process_ecdsa_sign_reqs(tlv, EC_P256);
                 submission_count--;
             } while ((mb_queue_ecdsap256_sign_get_size(tlv->ecdsap256_sign_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -980,7 +973,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDSA p256 sign setup requests */
-                DEBUG("8 ECDSA p256 sign setup requests in flight, process them\n");
                 process_ecdsa_sign_setup_reqs(tlv, EC_P256);
                 submission_count--;
             } while ((mb_queue_ecdsap256_sign_setup_get_size(tlv->ecdsap256_sign_setup_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -993,7 +985,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDSA p256 sign sig requests */
-                DEBUG("8 ECDSA p256 sign sig requests in flight, process them\n");
                 process_ecdsa_sign_sig_reqs(tlv, EC_P256);
                 submission_count--;
             } while ((mb_queue_ecdsap256_sign_sig_get_size(tlv->ecdsap256_sign_sig_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1006,7 +997,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDSA p256 Sign requests */
-                DEBUG("8 ECDSA p256 Sign requests in flight, process them\n");
                 process_ecdsa_verify_reqs(tlv, EC_P256);
                 submission_count--;
             } while ((mb_queue_ecdsap256_verify_get_size(tlv->ecdsap256_verify_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1019,7 +1009,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDSA p384 Sign requests */
-                DEBUG("8 ECDSA p384 Sign requests in flight, process them\n");
                 process_ecdsa_sign_reqs(tlv, EC_P384);
                 submission_count--;
                 } while ((mb_queue_ecdsap384_sign_get_size(tlv->ecdsap384_sign_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1032,7 +1021,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDSA p384 sign setup requests */
-                DEBUG("8 ECDSA p384 sign setup requests in flight, process them\n");
                 process_ecdsa_sign_setup_reqs(tlv, EC_P384);
                 submission_count--;
                 } while ((mb_queue_ecdsap384_sign_setup_get_size(tlv->ecdsap384_sign_setup_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1045,7 +1033,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDSA p384 sign sig requests */
-                DEBUG("8 ECDSA p384 sign sig requests in flight, process them\n");
                 process_ecdsa_sign_sig_reqs(tlv, EC_P384);
                 submission_count--;
                 } while ((mb_queue_ecdsap384_sign_sig_get_size(tlv->ecdsap384_sign_sig_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1058,7 +1045,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDSA p384 Sign requests */
-                DEBUG("8 ECDSA p384 Sign requests in flight, process them\n");
                 process_ecdsa_verify_reqs(tlv, EC_P384);
                 submission_count--;
             } while ((mb_queue_ecdsap384_verify_get_size(tlv->ecdsap384_verify_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1074,7 +1060,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 SM2_ECDSA Verify requests */
-                DEBUG("8 SM2_ECDSA Sign requests in flight, process them\n");
                 process_ecdsa_sm2_sign_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_ecdsa_sm2_sign_get_size(tlv->ecdsa_sm2_sign_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1087,7 +1072,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 SM2_ECDSA Verify requests */
-                DEBUG("8 SM2_ECDSA Verify requests in flight, process them\n");
                 process_ecdsa_sm2_verify_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_ecdsa_sm2_verify_get_size(tlv->ecdsa_sm2_verify_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1103,7 +1087,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDH p256 keygen requests */
-                DEBUG("8 ECDH p256 keygen requests in flight, process them\n");
                 process_ecdh_keygen_reqs(tlv, EC_P256);
                 submission_count--;
             } while ((mb_queue_ecdhp256_keygen_get_size(tlv->ecdhp256_keygen_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1116,7 +1099,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDH p256 compute requests */
-                DEBUG("8 ECDH p256 compute requests in flight, process them\n");
                 process_ecdh_compute_reqs(tlv, EC_P256);
                 submission_count--;
             } while ((mb_queue_ecdhp256_compute_get_size(tlv->ecdhp256_compute_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1129,7 +1111,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDH p384 keygen requests */
-                DEBUG("8 ECDH p384 keygen requests in flight, process them\n");
                 process_ecdh_keygen_reqs(tlv, EC_P384);
                 submission_count--;
             } while ((mb_queue_ecdhp384_keygen_get_size(tlv->ecdhp384_keygen_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1142,7 +1123,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDH p384 compute requests */
-                DEBUG("8 ECDH p384 compute requests in flight, process them\n");
                 process_ecdh_compute_reqs(tlv, EC_P384);
                 submission_count--;
             } while ((mb_queue_ecdhp384_compute_get_size(tlv->ecdhp384_compute_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1157,7 +1137,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDH sm2 keygen requests */
-                DEBUG("8 ECDH sm2 keygen requests in flight, process them\n");
                 process_ecdh_keygen_reqs(tlv, EC_SM2);
                 submission_count--;
             } while ((mb_queue_sm2ecdh_keygen_get_size(tlv->sm2ecdh_keygen_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1170,7 +1149,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 ECDH sm2 compute requests */
-                DEBUG("8 ECDH sm2 compute requests in flight, process them\n");
                 process_ecdh_compute_reqs(tlv, EC_SM2);
                 submission_count--;
             } while ((mb_queue_sm2ecdh_compute_get_size(tlv->sm2ecdh_compute_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1186,7 +1164,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 private key requests */
-                DEBUG("8 RSA2K private key requests in flight, process them\n");
                 process_RSA_priv_reqs(tlv, RSA_2K_LENGTH);
                 submission_count--;
             } while ((mb_queue_rsa2k_priv_get_size(tlv->rsa2k_priv_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1199,7 +1176,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 public key requests */
-                DEBUG("8 RSA2K public key requests in flight, process them\n");
                 process_RSA_pub_reqs(tlv, RSA_2K_LENGTH);
                 submission_count--;
             } while ((mb_queue_rsa2k_pub_get_size(tlv->rsa2k_pub_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1212,7 +1188,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 private key requests */
-                DEBUG("8 RSA3k private key requests in flight, process them\n");
                 process_RSA_priv_reqs(tlv, RSA_3K_LENGTH);
                 submission_count--;
             } while ((mb_queue_rsa3k_priv_get_size(tlv->rsa3k_priv_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1225,7 +1200,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 public key requests */
-                DEBUG("8 RSA3k public key requests in flight, process them\n");
                 process_RSA_pub_reqs(tlv, RSA_3K_LENGTH);
                 submission_count--;
             } while ((mb_queue_rsa3k_pub_get_size(tlv->rsa3k_pub_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1238,7 +1212,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 private key requests */
-                DEBUG("8 RSA4k private key requests in flight, process them\n");
                 process_RSA_priv_reqs(tlv, RSA_4K_LENGTH);
                 submission_count--;
             } while ((mb_queue_rsa4k_priv_get_size(tlv->rsa4k_priv_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1251,7 +1224,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
                 /* Deal with 8 public key requests */
-                DEBUG("8 RSA4k public key requests in flight, process them\n");
                 process_RSA_pub_reqs(tlv, RSA_4K_LENGTH);
                 submission_count--;
             } while ((mb_queue_rsa4k_pub_get_size(tlv->rsa4k_pub_queue) >= MULTIBUFF_MIN_BATCH) &&
@@ -1265,7 +1237,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
         if (mb_queue_sm3_init_get_size(tlv->sm3_init_queue) >= MULTIBUFF_SM3_MAX_BATCH) {
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
-                DEBUG("16 SM3 Init requests in flight, process them\n");
                 process_sm3_init_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_sm3_init_get_size(tlv->sm3_init_queue) >= MULTIBUFF_SM3_MIN_BATCH) &&
@@ -1278,7 +1249,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
         if (mb_queue_sm3_update_get_size(tlv->sm3_update_queue) >= MULTIBUFF_SM3_MAX_BATCH) {
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
-                DEBUG("16 SM3 Update requests in flight, process them\n");
                 process_sm3_update_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_sm3_update_get_size(tlv->sm3_update_queue) >= MULTIBUFF_SM3_MIN_BATCH) &&
@@ -1290,7 +1260,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
         if (mb_queue_sm3_final_get_size(tlv->sm3_final_queue) >= MULTIBUFF_SM3_MAX_BATCH) {
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
-                DEBUG("16 SM3 Final requests in flight, process them\n");
                 process_sm3_final_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_sm3_final_get_size(tlv->sm3_final_queue) >= MULTIBUFF_SM3_MIN_BATCH) &&
@@ -1305,7 +1274,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
         if (mb_queue_sm4_cbc_cipher_get_size(tlv->sm4_cbc_cipher_queue) >= MULTIBUFF_SM4_MAX_BATCH) {
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
-                DEBUG("%d SM4_CBC cipher enc requests in flight, process them\n", MULTIBUFF_SM4_MAX_BATCH);
                 process_mb_sm4_cbc_cipher_enc_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_sm4_cbc_cipher_get_size(tlv->sm4_cbc_cipher_queue) >= MULTIBUFF_SM4_MIN_BATCH) &&
@@ -1317,7 +1285,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
         if (mb_queue_sm4_cbc_cipher_get_size(tlv->sm4_cbc_cipher_dec_queue) >= MULTIBUFF_SM4_MAX_BATCH) {
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
-                DEBUG("%d SM4_CBC cipher dec requests in flight, process them\n", MULTIBUFF_SM4_MAX_BATCH);
                 process_mb_sm4_cbc_cipher_dec_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_sm4_cbc_cipher_get_size(tlv->sm4_cbc_cipher_dec_queue) >= MULTIBUFF_SM4_MIN_BATCH) &&
@@ -1332,7 +1299,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
         if (mb_queue_sm4_gcm_encrypt_get_size(tlv->sm4_gcm_encrypt_queue) >= MULTIBUFF_SM4_MAX_BATCH) {
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
-                DEBUG("%d SM4_GCM encrypt requests in flight, process them\n", MULTIBUFF_SM4_MAX_BATCH);
                 process_mb_sm4_gcm_encrypt_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_sm4_gcm_encrypt_get_size(tlv->sm4_gcm_encrypt_queue) >= MULTIBUFF_SM4_MIN_BATCH) &&
@@ -1344,7 +1310,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
         if (mb_queue_sm4_gcm_decrypt_get_size(tlv->sm4_gcm_decrypt_queue) >= MULTIBUFF_SM4_MAX_BATCH) {
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
-                DEBUG("%d SM4_GCM decrypt requests in flight, process them\n", MULTIBUFF_SM4_MAX_BATCH);
                 process_mb_sm4_gcm_decrypt_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_sm4_gcm_decrypt_get_size(tlv->sm4_gcm_decrypt_queue) >= MULTIBUFF_SM4_MIN_BATCH) &&
@@ -1359,7 +1324,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
         if (mb_queue_sm4_ccm_encrypt_get_size(tlv->sm4_ccm_encrypt_queue) >= MULTIBUFF_SM4_MAX_BATCH) {
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
-                DEBUG("%d SM4_GCM encrypt requests in flight, process them\n", MULTIBUFF_SM4_MAX_BATCH);
                 process_mb_sm4_ccm_encrypt_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_sm4_ccm_encrypt_get_size(tlv->sm4_ccm_encrypt_queue) >= MULTIBUFF_SM4_MIN_BATCH) &&
@@ -1371,7 +1335,6 @@ void *multibuff_timer_poll_func(void *thread_ptr)
         if (mb_queue_sm4_ccm_decrypt_get_size(tlv->sm4_ccm_decrypt_queue) >= MULTIBUFF_SM4_MAX_BATCH) {
             submission_count = MULTIBUFF_MAX_SUBMISSIONS;
             do {
-                DEBUG("%d SM4_GCM decrypt requests in flight, process them\n", MULTIBUFF_SM4_MAX_BATCH);
                 process_mb_sm4_ccm_decrypt_reqs(tlv);
                 submission_count--;
             } while ((mb_queue_sm4_ccm_decrypt_get_size(tlv->sm4_ccm_decrypt_queue) >= MULTIBUFF_SM4_MIN_BATCH) &&
@@ -1382,10 +1345,8 @@ void *multibuff_timer_poll_func(void *thread_ptr)
         }
 #endif
 
-        DEBUG("Finished loop in the Polling Thread\n");
     }
 
-    DEBUG("timer_poll_func finishing - pid = %d\n", getpid());
     cleared_to_start = 0;
     return NULL;
 }

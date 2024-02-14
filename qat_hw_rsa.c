@@ -152,7 +152,6 @@ rsa_decrypt_op_buf_free(CpaCyRsaDecryptOpData * dec_op_data,
                         CpaFlatBuffer * out_buf, int qat_svm)
 {
     CpaCyRsaPrivateKeyRep2 *key = NULL;
-    DEBUG("- Started\n");
 
     if (dec_op_data) {
         if (dec_op_data->inputData.pData && !qat_svm)
@@ -175,7 +174,6 @@ rsa_decrypt_op_buf_free(CpaCyRsaDecryptOpData * dec_op_data,
             qaeCryptoMemFreeNonZero(out_buf->pData);
         OPENSSL_free(out_buf);
     }
-    DEBUG("- Finished\n");
 }
 
 
@@ -193,7 +191,6 @@ static int qat_rsa_decrypt(CpaCyRsaDecryptOpData * dec_op_data, int rsa_len,
     int job_ret = 0;
 # endif
 
-    DEBUG("- Started\n");
 
     tlv = qat_check_create_local_variables();
     if (NULL == tlv) {
@@ -283,7 +280,6 @@ static int qat_rsa_decrypt(CpaCyRsaDecryptOpData * dec_op_data, int rsa_len,
                               dec_op_data, output_buf);
         STOP_RDTSC(&qat_hw_rsa_dec_req_submit, 1, "[QAT HW RSA: submit]");
         if (sts == CPA_STATUS_RETRY) {
-            DEBUG("cpaCyRsaDecrypt Retry \n");
             if (qat_rsa_coexist) {
                 START_RDTSC(&qat_hw_rsa_dec_req_retry);
                 ++num_rsa_priv_retry;
@@ -397,7 +393,6 @@ static int qat_rsa_decrypt(CpaCyRsaDecryptOpData * dec_op_data, int rsa_len,
 
     qat_cleanup_op_done(&op_done);
 
-    DEBUG("- Finished\n");
     return 1;
 # endif /* QAT_BORINGSSL */
 }
@@ -418,7 +413,6 @@ build_decrypt_op_buf(int flen, const unsigned char *from, unsigned char *to,
     const BIGNUM *dmq1 = NULL;
     const BIGNUM *iqmp = NULL;
 
-    DEBUG("- Started\n");
 
     RSA_get0_factors((const RSA*)rsa, &p, &q);
     RSA_get0_crt_params((const RSA*)rsa, &dmp1, &dmq1, &iqmp);
@@ -430,7 +424,6 @@ build_decrypt_op_buf(int flen, const unsigned char *from, unsigned char *to,
         return 0;
     }
 
-    DEBUG("flen = %d, padding = %d \n", flen, padding);
     /* output signature should have same length as the RSA size */
     rsa_len = RSA_size(rsa);
 
@@ -554,7 +547,6 @@ build_decrypt_op_buf(int flen, const unsigned char *from, unsigned char *to,
     }
     (*output_buffer)->dataLenInBytes = rsa_len;
 
-    DEBUG("- Finished\n");
     return 1;
 }
 
@@ -562,7 +554,6 @@ static void
 rsa_encrypt_op_buf_free(CpaCyRsaEncryptOpData * enc_op_data,
                         CpaFlatBuffer * out_buf, int qat_svm)
 {
-    DEBUG("- Started\n");
 
     if (enc_op_data) {
         if (enc_op_data->pPublicKey) {
@@ -583,7 +574,6 @@ rsa_encrypt_op_buf_free(CpaCyRsaEncryptOpData * enc_op_data,
         }
         OPENSSL_free(out_buf);
     }
-    DEBUG("- Finished\n");
 }
 
 
@@ -600,7 +590,6 @@ static int qat_rsa_encrypt(CpaCyRsaEncryptOpData * enc_op_data,
     int iMsgRetry = getQatMsgRetryCount();
     useconds_t ulPollInterval = getQatPollInterval();
 
-    DEBUG("- Started\n");
 
     tlv = qat_check_create_local_variables();
     if (NULL == tlv) {
@@ -653,7 +642,6 @@ static int qat_rsa_encrypt(CpaCyRsaEncryptOpData * enc_op_data,
         sts = cpaCyRsaEncrypt(qat_instance_handles[inst_num], qat_rsaCallbackFn, &op_done,
                               enc_op_data, output_buf);
         if (sts == CPA_STATUS_RETRY) {
-            DEBUG("cpaCyRsaDecrypt Retry \n");
             if (op_done.job == NULL) {
                 usleep(ulPollInterval +
                        (qatPerformOpRetries % QAT_RETRY_BACKOFF_MODULO_DIVISOR));
@@ -788,7 +776,6 @@ build_encrypt_op_buf(int flen, const unsigned char *from, unsigned char *to,
     const BIGNUM *e = NULL;
     const BIGNUM *d = NULL;
 
-    DEBUG("- Started\n");
 
     RSA_get0_key((const RSA*)rsa, &n, &e, &d);
 
@@ -799,7 +786,6 @@ build_encrypt_op_buf(int flen, const unsigned char *from, unsigned char *to,
         return 0;
     }
 
-    DEBUG("flen =%d, padding = %d \n", flen, padding);
     rsa_len = RSA_size(rsa);
 
     if ((padding != RSA_NO_PADDING) &&
@@ -923,7 +909,6 @@ build_encrypt_op_buf(int flen, const unsigned char *from, unsigned char *to,
         return 0;;
     }
 
-    DEBUG("- Finished\n");
     return 1;
 }
 
@@ -964,7 +949,6 @@ int qat_rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to,
 #ifdef ENABLE_QAT_HW_KPT
     if (rsa && qat_check_rsa_wpk(rsa) > 0) {
         if (is_kpt_mode()) {
-            DEBUG("Run the qat_rsa_priv_enc in KPT mode.\n");
             return qat_hw_kpt_rsa_priv_enc(flen, from, to, rsa, padding);
         }
         else {
@@ -974,7 +958,6 @@ int qat_rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to,
     }
 #endif
 
-    DEBUG("QAT HW RSA Started.\n");
 #ifdef ENABLE_QAT_FIPS
     qat_fips_get_approved_status();
 #endif
@@ -1036,7 +1019,6 @@ int qat_rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to,
     if (1 != dec_ret) {
 # ifdef QAT_BORINGSSL
         if (-1 == dec_ret) {
-            DEBUG("Async job pause, waiting for wake up.\n");
 
             /* For the Async mode when BoringSSL enabled, rsa_decrypt_op_buf_free is
             * called at the end of callback function. */
@@ -1098,7 +1080,6 @@ int qat_rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to,
     }
 # endif
 
-    DEBUG("- Finished\n");
     return rsa_len;
 
 exit:
@@ -1111,7 +1092,6 @@ exit:
         CRYPTO_QAT_LOG("Resubmitting request to SW - %s\n", __func__);
 #ifdef ENABLE_QAT_SW_RSA
         if (qat_rsa_coexist) {
-            DEBUG("- Switch to QAT SW mode.\n");
             if (qat_sw_rsa_priv_req > 0)
                 --qat_sw_rsa_priv_req;
             return multibuff_rsa_priv_enc(flen, from, to, rsa, padding);
@@ -1168,7 +1148,6 @@ int qat_rsa_priv_dec(int flen, const unsigned char *from,
 #ifdef ENABLE_QAT_HW_KPT
     if (rsa && qat_check_rsa_wpk(rsa) > 0) {
         if (is_kpt_mode()) {
-            DEBUG("Run the qat_rsa_priv_dec in KPT mode.\n");
             return qat_hw_kpt_rsa_priv_dec(flen, from, to, rsa, padding);
         }
         else {
@@ -1178,7 +1157,6 @@ int qat_rsa_priv_dec(int flen, const unsigned char *from,
     }
 #endif
 
-    DEBUG("QAT HW RSA Started.\n");
 
     if ((qat_sw_rsa_priv_req > 0) || qat_get_qat_offload_disabled()) {
         fallback = 1;
@@ -1231,7 +1209,6 @@ int qat_rsa_priv_dec(int flen, const unsigned char *from,
     if (1 != dec_ret) {
 # ifdef QAT_BORINGSSL
         if (-1 == dec_ret) {
-            DEBUG("Async job pause, waiting for wake up.\n");
 
             /* For the Async mode when BoringSSL enabled, rsa_decrypt_op_buf_free is
             * called at the end of callback function.
@@ -1338,7 +1315,6 @@ int qat_rsa_priv_dec(int flen, const unsigned char *from,
     dec_op_data = NULL;
     output_buffer = NULL;
 
-    DEBUG("- Finished\n");
     return output_len;
 
  exit:
@@ -1351,7 +1327,6 @@ int qat_rsa_priv_dec(int flen, const unsigned char *from,
         CRYPTO_QAT_LOG("Resubmitting request to SW - %s\n", __func__);
 #ifdef ENABLE_QAT_SW_RSA
         if (qat_rsa_coexist) {
-            DEBUG("- Switch to QAT_SW mode.\n");
             if (qat_sw_rsa_priv_req > 0)
                 --qat_sw_rsa_priv_req;
             return multibuff_rsa_priv_dec(flen, from, to, rsa, padding);
@@ -1400,7 +1375,6 @@ int qat_rsa_pub_enc(int flen, const unsigned char *from,
     int inst_num = QAT_INVALID_INSTANCE;
     int qat_svm = QAT_INSTANCE_ANY;
 
-    DEBUG("QAT HW RSA Started.\n");
 
     if ((qat_sw_rsa_pub_req > 0) || qat_get_qat_offload_disabled()) {
         fallback = 1;
@@ -1468,7 +1442,6 @@ int qat_rsa_pub_enc(int flen, const unsigned char *from,
     enc_op_data = NULL;
     output_buffer = NULL;
 
-    DEBUG("- Finished\n");
     return rsa_len;
  exit:
     /* Free all the memory allocated in this function */
@@ -1478,7 +1451,6 @@ int qat_rsa_pub_enc(int flen, const unsigned char *from,
         CRYPTO_QAT_LOG("Resubmitting request to SW - %s\n", __func__);
 #ifdef ENABLE_QAT_SW_RSA
         if (qat_rsa_coexist) {
-            DEBUG("- Switch to QAT_SW mode.\n");
             if (qat_sw_rsa_pub_req > 0)
                 --qat_sw_rsa_pub_req;
             return multibuff_rsa_pub_enc(flen, from, to, rsa, padding);
@@ -1527,7 +1499,6 @@ int qat_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to,
     int inst_num = QAT_INVALID_INSTANCE;
     int qat_svm = QAT_INSTANCE_ANY;
 
-    DEBUG("QAT HW RSA Started.\n");
 #ifdef ENABLE_QAT_FIPS
     qat_fips_get_approved_status();
 #endif
@@ -1624,7 +1595,6 @@ int qat_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to,
     rsa_encrypt_op_buf_free(enc_op_data, output_buffer, qat_svm);
     enc_op_data = NULL;
     output_buffer = NULL;
-    DEBUG("- Finished\n");
     return output_len;
 
  exit:
@@ -1635,7 +1605,6 @@ int qat_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to,
         CRYPTO_QAT_LOG("Resubmitting request to SW - %s\n", __func__);
 #ifdef ENABLE_QAT_SW_RSA
         if (qat_rsa_coexist) {
-            DEBUG("- Switch to QAT_SW mode.\n");
             if (qat_sw_rsa_pub_req > 0)
                 --qat_sw_rsa_pub_req;
             return multibuff_rsa_pub_dec(flen, from, to, rsa, padding);
@@ -1669,7 +1638,6 @@ int qat_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to,
 int
 qat_rsa_mod_exp(BIGNUM *r0, const BIGNUM *I, RSA *rsa, BN_CTX *ctx)
 {
-    DEBUG("- Started\n");
     return RSA_meth_get_mod_exp(RSA_PKCS1_OpenSSL())
                                 (r0, I, rsa, ctx);
 }

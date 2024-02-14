@@ -1367,7 +1367,6 @@ static int qat_rsa_signverify_init(void *vprsactx, void *vrsa,
 
 static int qat_signature_rsa_sign_init(void *vprsactx, void *vrsa, const OSSL_PARAM params[])
 {
-    DEBUG("qat_rsa_sign_init.\n");
 
     if (!qat_prov_is_running())
         return 0;
@@ -1536,7 +1535,6 @@ end:
 static int qat_signature_rsa_verify_recover_init(void *vprsactx, void *vrsa,
                                                  const OSSL_PARAM params[])
 {
-    DEBUG("qat_rsa_verify_recover_init.\n");
 
     if (!qat_prov_is_running())
         return 0;
@@ -1630,7 +1628,6 @@ static int qat_signature_rsa_verify_recover(void *vprsactx,
 static int qat_signature_rsa_verify_init(void *vprsactx, void *vrsa,
                                          const OSSL_PARAM params[])
 {
-    DEBUG("qat_rsa_verify_init.\n");
     if (!qat_prov_is_running())
         return 0;
     return qat_rsa_signverify_init(vprsactx, vrsa, params, EVP_PKEY_OP_VERIFY);

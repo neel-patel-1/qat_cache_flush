@@ -122,12 +122,10 @@ DSA_METHOD *qat_get_DSA_methods(void)
             return NULL;
         }
 
-        DEBUG("QAT HW DSA registration succeeded\n");
         return qat_dsa_method;
     }
 #endif
     def_dsa_method = (DSA_METHOD *)DSA_get_default_method();
-    DEBUG("QAT HW DSA is disabled, using OpenSSL SW\n");
     return def_dsa_method;
 }
 
@@ -217,10 +215,8 @@ int qat_dsa_bn_mod_exp(DSA *dsa, BIGNUM *r, const BIGNUM *a, const BIGNUM *p,
 {
     int ret = 0, fallback = 0;
 
-    DEBUG("- Started\n");
 
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode\n");
         return BN_mod_exp_mont(r, a, p, m, ctx, m_ctx);
     }
 
@@ -269,7 +265,6 @@ DSA_SIG *qat_dsa_do_sign(const unsigned char *dgst, int dlen,
     thread_local_variables_t *tlv = NULL;
     int qat_svm = QAT_INSTANCE_ANY;
 
-    DEBUG("QAT HW DSA Started\n");
 #ifdef ENABLE_QAT_FIPS
     qat_fips_get_approved_status();
 #endif
@@ -281,7 +276,6 @@ DSA_SIG *qat_dsa_do_sign(const unsigned char *dgst, int dlen,
     }
 
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode\n");
         return DSA_meth_get_sign(default_dsa_method)(dgst, dlen, dsa);
 
     }
@@ -675,7 +669,6 @@ DSA_SIG *qat_dsa_do_sign(const unsigned char *dgst, int dlen,
 int qat_dsa_sign_setup(DSA *dsa, BN_CTX *ctx_in, BIGNUM **kinvp, BIGNUM **rp)
 {
     const DSA_METHOD *default_dsa_method = DSA_OpenSSL();
-    DEBUG("%s been called \n", __func__);
 
     if (unlikely(dsa == NULL || ctx_in == NULL || kinvp == NULL || rp == NULL)) {
         WARN("Invalid input param.\n");
@@ -715,7 +708,6 @@ int qat_dsa_do_verify(const unsigned char *dgst, int dgst_len,
     thread_local_variables_t *tlv = NULL;
     int qat_svm = QAT_INSTANCE_ANY;
 
-    DEBUG("QAT HW DSA Started\n");
 #ifdef ENABLE_QAT_FIPS
     qat_fips_get_approved_status();
 #endif
@@ -727,7 +719,6 @@ int qat_dsa_do_verify(const unsigned char *dgst, int dgst_len,
     }
 
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode\n");
         return DSA_meth_get_verify(default_dsa_method)(dgst, dgst_len, sig, dsa);
 
     }
@@ -982,7 +973,6 @@ int qat_dsa_do_verify(const unsigned char *dgst, int dgst_len,
     while (!op_done.flag ||
            QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-    DEBUG("bDsaVerifyStatus = %u\n", bDsaVerifyStatus);
     QAT_DEC_IN_FLIGHT_REQS(num_requests_in_flight, tlv);
 
     if (op_done.verifyResult == CPA_TRUE)

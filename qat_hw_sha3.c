@@ -173,7 +173,6 @@ const EVP_MD *qat_create_sha3_meth(int nid , int key_type)
         }
 
         qat_hw_sha_offload = 1;
-        DEBUG("QAT HW SHA3 Registration succeeded\n");
         return c;
     } else {
         qat_hw_sha_offload = 0;
@@ -187,14 +186,12 @@ const EVP_MD *qat_create_sha3_meth(int nid , int key_type)
         }
 	return c;
 # else
-        DEBUG("QAT HW SHA3 is disabled, using OpenSSL SW\n");
         EVP_MD_meth_free(c);
         return qat_sha3_sw_impl(nid);
 # endif
     }
 #else
     qat_hw_sha_offload = 0;
-    DEBUG("QAT HW SHA3 is disabled, using OpenSSL SW\n");
     return qat_sha3_sw_impl(nid);
 #endif
 }
@@ -387,12 +384,10 @@ static int qat_sha3_init(EVP_MD_CTX *ctx)
 
 #if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
     if (qat_openssl3_sha_fallback == 1) {
-        DEBUG("- Switched to software mode\n");
         goto use_sw_method;
     }
 #endif
 
-    DEBUG("QAT HW SHA3 init Started ctx %p\n", ctx);
     /* Initialise a QAT session and set the hash*/
 #ifdef QAT_OPENSSL_PROVIDER
     sha3_ctx = ctx->qctx;
@@ -437,7 +432,6 @@ static int qat_sha3_init(EVP_MD_CTX *ctx)
 #if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
 use_sw_method:
     sts = EVP_MD_meth_get_init(GET_SW_SHA3_DIGEST(ctx))(ctx);
-    DEBUG("SW Finished %p\n", ctx);
     return sts;
 #endif
 }
@@ -570,14 +564,12 @@ static int qat_sha3_cleanup(EVP_MD_CTX *ctx)
         sha3_ctx->context_params_set = 0;
     }
 
-    DEBUG("cleanup done\n");
 
 #ifdef ENABLE_QAT_FIPS
     qat_fips_key_zeroize = 1;
     qat_fips_get_key_zeroize_status();
 #endif
 
-    DEBUG("cleanup done\n");
     return ret_val;
 }
 
@@ -647,7 +639,6 @@ static int qat_sha3_setup_param(qat_sha3_ctx *sha3_ctx)
     }
     sha3_ctx->qat_svm = !qat_instance_details[sha3_ctx->inst_num].qat_instance_info.requiresPhysicallyContiguousMemory;
 
-    DEBUG("inst_num = %d Size of session ctx = %d inst mem type = %d \n", sha3_ctx->inst_num, sctx_size, sha3_ctx->qat_svm);
     /* Determine size of session context to allocate */
     status = cpaCySymSessionCtxGetSize(qat_instance_handles[sha3_ctx->inst_num],
                                        sha3_ctx->session_data,
@@ -657,7 +648,6 @@ static int qat_sha3_setup_param(qat_sha3_ctx *sha3_ctx)
         QATerr(QAT_F_QAT_SHA3_SETUP_PARAM, ERR_R_INTERNAL_ERROR);
         return 0;
     }
-    DEBUG("inst_num = %d, Size of session ctx = %d\n", sha3_ctx->inst_num, sctx_size);
 
     sha3_ctx->session_ctx =
         (CpaCySymSessionCtx)qat_mem_alloc(sctx_size, sha3_ctx->qat_svm, __FILE__, __LINE__);
@@ -695,7 +685,6 @@ static int qat_sha3_setup_param(qat_sha3_ctx *sha3_ctx)
         QAT_MEM_FREE_NONZERO_BUFF(sha3_ctx->session_ctx, sha3_ctx->qat_svm);
         return 0;
     }
-    DEBUG("Buffer MetaSize : %d\n", bufferMetaSize);
 
     if (bufferMetaSize) {
         sha3_ctx->pSrcBufferList.pPrivateMetaData =
@@ -815,10 +804,8 @@ static int qat_hw_sha3_offload(EVP_MD_CTX *ctx, const void *in, size_t len, int 
     /* The type 'last partial cannot set without a partial set previous */
     if (CPA_CY_SYM_PACKET_TYPE_LAST_PARTIAL == packet_type &&
         sha3_ctx->qat_offloaded == 0) {
-        DEBUG("SHA3 data packet type: FULL\n");
         sha3_ctx->opd->packetType = CPA_CY_SYM_PACKET_TYPE_FULL;
     } else {
-        DEBUG("SHA3 data packet type partial or last partial\n");
         sha3_ctx->opd->packetType = packet_type;
     }
 
@@ -946,7 +933,6 @@ static int qat_sha3_copy(EVP_MD_CTX *to, const EVP_MD_CTX *from)
         return 0;
     }
 
-    DEBUG("Copy to %p from %p \n", to, from);
 
 #ifdef QAT_OPENSSL_PROVIDER
     qat_from = from->qctx;
@@ -1020,7 +1006,6 @@ static int qat_sha3_final(EVP_MD_CTX *ctx, unsigned char *md)
 
 #if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
     if (qat_openssl3_sha_fallback == 1) {
-        DEBUG("- Switched to software mode\n");
         goto use_sw_method;
     }
 #endif
@@ -1035,13 +1020,11 @@ static int qat_sha3_final(EVP_MD_CTX *ctx, unsigned char *md)
         QATerr(QAT_F_QAT_SHA3_FINAL, QAT_R_SHA3_CTX_NULL);
         return -1;
     }
-    DEBUG("QAT HW SHA3 final, ctx %p, md %p len %d\n", ctx, md, sha3_ctx->num);
 
 #ifndef QAT_OPENSSL_PROVIDER
 # ifndef ENABLE_QAT_SMALL_PKT_OFFLOAD
     if (sha3_ctx->num <= CRYPTO_SMALL_PACKET_OFFLOAD_THRESHOLD_DEFAULT
         && sha3_ctx->sw_offload) {
-        DEBUG("Packet size < 2048, Using OpenSSL SW\n");
         return EVP_MD_meth_get_final(GET_SW_SHA3_DIGEST(ctx)) (ctx, md);
     }
 # endif
@@ -1066,7 +1049,6 @@ static int qat_sha3_final(EVP_MD_CTX *ctx, unsigned char *md)
 #if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
 use_sw_method:
     sts = EVP_MD_meth_get_final(GET_SW_SHA3_DIGEST(ctx)) (ctx, md);
-    DEBUG("SW Finished %p\n", ctx);
     return sts;
 #endif
 }
@@ -1115,12 +1097,10 @@ static int qat_sha3_update(EVP_MD_CTX *ctx, const void *in, size_t len)
 
 #if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
     if (qat_openssl3_sha_fallback == 1) {
-        DEBUG("- Switched to software mode\n");
         goto use_sw_method;
     }
 #endif
 
-    DEBUG("QAT HW SHA3 Update ctx %p, in %p, len %ld\n", ctx, in, len);
 
 #ifdef QAT_OPENSSL_PROVIDER
     sha3_ctx = ctx->qctx;
@@ -1145,7 +1125,6 @@ static int qat_sha3_update(EVP_MD_CTX *ctx, const void *in, size_t len)
 # ifndef ENABLE_QAT_SMALL_PKT_OFFLOAD
     if (sha3_ctx->sw_offload ||
        (len <= CRYPTO_SMALL_PACKET_OFFLOAD_THRESHOLD_DEFAULT)) {
-        DEBUG("Packet size < 2048, Using OpenSSL SW\n");
         sha3_ctx->sw_offload = 1;
         return EVP_MD_meth_get_update(GET_SW_SHA3_DIGEST(ctx))
                   (ctx, in, len);
@@ -1205,7 +1184,6 @@ static int qat_sha3_update(EVP_MD_CTX *ctx, const void *in, size_t len)
 use_sw_method:
     return EVP_MD_meth_get_update(GET_SW_SHA3_DIGEST(ctx))
                   (ctx, in, len);
-    DEBUG("SW Finished %p\n", ctx);
     return sts;
 #endif
 }

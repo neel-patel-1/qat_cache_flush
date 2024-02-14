@@ -217,7 +217,6 @@ void qat_crypto_callbackFn(void *callbackTag, CpaStatus status,
         return;
     }
 
-    DEBUG("status %d verifyResult %d\n", status, verifyResult);
     opDone->verifyResult = (status == CPA_STATUS_SUCCESS) && verifyResult
                             ? CPA_TRUE : CPA_FALSE;
     opDone->status = status;

@@ -147,7 +147,6 @@ void process_ecdsa_sign_reqs(mb_thread_data *tlv, int bit_len)
     /* Build Arrays of pointers for call */
     switch (bit_len) {
     case EC_P256:
-        DEBUG("Dequeue ECDSA p256 sign reqs.\n");
         while ((ecdsa_sign_req_array[req_num] =
                 mb_queue_ecdsap256_sign_dequeue(tlv->ecdsap256_sign_queue)) != NULL) {
             sign_r[req_num] = ecdsa_sign_req_array[req_num]->sign_r;
@@ -162,7 +161,6 @@ void process_ecdsa_sign_reqs(mb_thread_data *tlv, int bit_len)
         }
         break;
     case EC_P384:
-        DEBUG("Dequeue ECDSA p384 sign reqs.\n");
         while ((ecdsa_sign_req_array[req_num] =
                 mb_queue_ecdsap384_sign_dequeue(tlv->ecdsap384_sign_queue)) != NULL) {
             sign_r[req_num] = ecdsa_sign_req_array[req_num]->sign_r;
@@ -181,7 +179,6 @@ void process_ecdsa_sign_reqs(mb_thread_data *tlv, int bit_len)
 
     switch (bit_len) {
     case EC_P256:
-        DEBUG("Submitting %d ECDSA p256 sign requests\n", local_request_no);
         sts = mbx_nistp256_ecdsa_sign_ssl_mb8(sign_r,
                                               sign_s,
                                               digest,
@@ -190,7 +187,6 @@ void process_ecdsa_sign_reqs(mb_thread_data *tlv, int bit_len)
                                               NULL);
         break;
     case EC_P384:
-        DEBUG("Submitting %d ECDSA p384 sign requests\n", local_request_no);
         num_ecdsa_sw_sign_reqs += local_request_no;
         sts = mbx_nistp384_ecdsa_sign_ssl_mb8(sign_r,
                                               sign_s,
@@ -203,7 +199,6 @@ void process_ecdsa_sign_reqs(mb_thread_data *tlv, int bit_len)
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (ecdsa_sign_req_array[req_num]->sts != NULL) {
             if (MBX_GET_STS(sts, req_num) == MBX_STATUS_OK) {
-                DEBUG("Multibuffer ECDSA Sign request[%d] success\n", req_num);
                 *ecdsa_sign_req_array[req_num]->sts = 1;
             } else {
                 WARN("Multibuffer ECDSA Sign request[%d] failure - sts %d\n",
@@ -238,7 +233,6 @@ void process_ecdsa_sign_reqs(mb_thread_data *tlv, int bit_len)
 # endif
 
     STOP_RDTSC(&ecdsa_cycles_sign_execute, 1, "[ECDSA:sign_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 void process_ecdsa_sign_setup_reqs(mb_thread_data *tlv, int bit_len)
@@ -256,7 +250,6 @@ void process_ecdsa_sign_setup_reqs(mb_thread_data *tlv, int bit_len)
     /* Build Arrays of pointers for call */
     switch (bit_len) {
     case EC_P256:
-        DEBUG("Dequeue ECDSA p256 sign setup reqs.\n");
         while ((ecdsa_sign_setup_req_array[req_num] =
                 mb_queue_ecdsap256_sign_setup_dequeue(tlv->ecdsap256_sign_setup_queue)) != NULL) {
             k_inv[req_num] = ecdsa_sign_setup_req_array[req_num]->k_inv;
@@ -269,7 +262,6 @@ void process_ecdsa_sign_setup_reqs(mb_thread_data *tlv, int bit_len)
         }
         break;
     case EC_P384:
-        DEBUG("Dequeue ECDSA p384 sign setup reqs.\n");
         while ((ecdsa_sign_setup_req_array[req_num] =
                 mb_queue_ecdsap384_sign_setup_dequeue(tlv->ecdsap384_sign_setup_queue)) != NULL) {
             k_inv[req_num] = ecdsa_sign_setup_req_array[req_num]->k_inv;
@@ -286,14 +278,12 @@ void process_ecdsa_sign_setup_reqs(mb_thread_data *tlv, int bit_len)
 
     switch (bit_len) {
     case EC_P256:
-        DEBUG("Submitting %d ECDSA p256 sign setup requests\n", local_request_no);
         sts = mbx_nistp256_ecdsa_sign_setup_ssl_mb8(k_inv,
                                                     sig_rp,
                                                     eph_key,
                                                     NULL);
         break;
     case EC_P384:
-        DEBUG("Submitting %d ECDSA p384 sign setup requests\n", local_request_no);
         sts = mbx_nistp384_ecdsa_sign_setup_ssl_mb8(k_inv,
                                                     sig_rp,
                                                     eph_key,
@@ -303,7 +293,6 @@ void process_ecdsa_sign_setup_reqs(mb_thread_data *tlv, int bit_len)
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (ecdsa_sign_setup_req_array[req_num]->sts != NULL) {
             if (MBX_GET_STS(sts, req_num) == MBX_STATUS_OK) {
-                DEBUG("Multibuffer ECDSA Sign setup request[%d] success\n", req_num);
                 *ecdsa_sign_setup_req_array[req_num]->sts = 1;
             } else {
                 WARN("Multibuffer ECDSA Sign setup request[%d] failure - sts %d\n",
@@ -334,7 +323,6 @@ void process_ecdsa_sign_setup_reqs(mb_thread_data *tlv, int bit_len)
 # endif
 
     STOP_RDTSC(&ecdsa_cycles_sign_setup_execute, 1, "[ECDSA:sign_setup_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 void process_ecdsa_sign_sig_reqs(mb_thread_data *tlv, int bit_len)
@@ -355,7 +343,6 @@ void process_ecdsa_sign_sig_reqs(mb_thread_data *tlv, int bit_len)
     /* Build Arrays of pointers for call */
     switch (bit_len) {
     case EC_P256:
-        DEBUG("Dequeue ECDSA p256 sign sig reqs.\n");
         while ((ecdsa_sign_sig_req_array[req_num] =
                 mb_queue_ecdsap256_sign_sig_dequeue(tlv->ecdsap256_sign_sig_queue)) != NULL) {
             sign_r[req_num] = ecdsa_sign_sig_req_array[req_num]->sign_r;
@@ -371,7 +358,6 @@ void process_ecdsa_sign_sig_reqs(mb_thread_data *tlv, int bit_len)
         }
         break;
     case EC_P384:
-        DEBUG("Dequeue ECDSA p384 sign sig reqs.\n");
         while ((ecdsa_sign_sig_req_array[req_num] =
                 mb_queue_ecdsap384_sign_sig_dequeue(tlv->ecdsap384_sign_sig_queue)) != NULL) {
             sign_r[req_num] = ecdsa_sign_sig_req_array[req_num]->sign_r;
@@ -391,7 +377,6 @@ void process_ecdsa_sign_sig_reqs(mb_thread_data *tlv, int bit_len)
 
     switch (bit_len) {
     case EC_P256:
-        DEBUG("Submitting %d ECDSA p256 sign sig requests\n", local_request_no);
         sts = mbx_nistp256_ecdsa_sign_complete_ssl_mb8(sign_r,
                                                        sign_s,
                                                        digest,
@@ -401,7 +386,6 @@ void process_ecdsa_sign_sig_reqs(mb_thread_data *tlv, int bit_len)
                                                        NULL);
         break;
     case EC_P384:
-        DEBUG("Submitting %d ECDSA p384 sign sig requests\n", local_request_no);
         sts = mbx_nistp384_ecdsa_sign_complete_ssl_mb8(sign_r,
                                                        sign_s,
                                                        digest,
@@ -414,7 +398,6 @@ void process_ecdsa_sign_sig_reqs(mb_thread_data *tlv, int bit_len)
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (ecdsa_sign_sig_req_array[req_num]->sts != NULL) {
             if (MBX_GET_STS(sts, req_num) == MBX_STATUS_OK) {
-                DEBUG("Multibuffer ECDSA Sign sig request[%d] success\n", req_num);
                 *ecdsa_sign_sig_req_array[req_num]->sts = 1;
             } else {
                 WARN("Multibuffer ECDSA Sign sig request[%d] failure - sts %d\n",
@@ -438,7 +421,6 @@ void process_ecdsa_sign_sig_reqs(mb_thread_data *tlv, int bit_len)
 # endif
 
     STOP_RDTSC(&ecdsa_cycles_sign_sig_execute, 1, "[ECDSA:sign_sig_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 void process_ecdsa_verify_reqs(mb_thread_data *tlv, int bit_len)
@@ -458,7 +440,6 @@ void process_ecdsa_verify_reqs(mb_thread_data *tlv, int bit_len)
     /* Build Arrays of pointers for call */
     switch (bit_len) {
     case EC_P256:
-        DEBUG("Dequeue ECDSA p256 verify reqs.\n");
         while ((ecdsa_verify_req_array[req_num] =
                 mb_queue_ecdsap256_verify_dequeue(tlv->ecdsap256_verify_queue)) != NULL) {
             ecdsa_verify_x[req_num] = ecdsa_verify_req_array[req_num]->x;
@@ -473,7 +454,6 @@ void process_ecdsa_verify_reqs(mb_thread_data *tlv, int bit_len)
         }
         break;
     case EC_P384:
-        DEBUG("Dequeue ECDSA p384 verify reqs.\n");
         while ((ecdsa_verify_req_array[req_num] =
                 mb_queue_ecdsap384_verify_dequeue(tlv->ecdsap384_verify_queue)) != NULL) {
             ecdsa_verify_x[req_num] = ecdsa_verify_req_array[req_num]->x;
@@ -492,7 +472,6 @@ void process_ecdsa_verify_reqs(mb_thread_data *tlv, int bit_len)
 
     switch (bit_len) {
     case EC_P256:
-        DEBUG("Submitting %d ECDSA p256 verify requests\n", local_request_no);
         sts = mbx_nistp256_ecdsa_verify_ssl_mb8(sig,
                                               digest,
                                               ecdsa_verify_x,
@@ -501,7 +480,6 @@ void process_ecdsa_verify_reqs(mb_thread_data *tlv, int bit_len)
                                               NULL);
         break;
     case EC_P384:
-        DEBUG("Submitting %d ECDSA p384 verify requests\n", local_request_no);
         sts = mbx_nistp384_ecdsa_verify_ssl_mb8(sig,
                                               digest,
                                               ecdsa_verify_x,
@@ -513,7 +491,6 @@ void process_ecdsa_verify_reqs(mb_thread_data *tlv, int bit_len)
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (ecdsa_verify_req_array[req_num]->sts != NULL) {
             if (MBX_GET_STS(sts, req_num) == MBX_STATUS_OK) {
-                DEBUG("Multibuffer ECDSA Verify request[%d] success\n", req_num);
                 *ecdsa_verify_req_array[req_num]->sts = 1;
             } else {
                 WARN("Multibuffer ECDSA Verify request[%d] failure - sts %d\n",
@@ -544,7 +521,6 @@ void process_ecdsa_verify_reqs(mb_thread_data *tlv, int bit_len)
 # endif
 
     STOP_RDTSC(&ecdsa_cycles_verify_execute, 1, "[ECDSA:verify_execute]");
-    DEBUG("Processed Final Request\n");
 }
 #endif
 
@@ -566,7 +542,6 @@ void process_ecdh_keygen_reqs(mb_thread_data *tlv, int curve)
 
     switch (curve) {
     case EC_P256:
-        DEBUG("Dequeue ECDHP256 keygen reqs.\n");
         while ((ecdh_keygen_req_array[req_num] =
                 mb_queue_ecdhp256_keygen_dequeue(tlv->ecdhp256_keygen_queue)) != NULL) {
         ecdh_keygen_x[req_num] = ecdh_keygen_req_array[req_num]->x;
@@ -580,7 +555,6 @@ void process_ecdh_keygen_reqs(mb_thread_data *tlv, int curve)
         }
         break;
     case EC_P384:
-        DEBUG("Dequeue ECDHP384 keygen reqs.\n");
         while ((ecdh_keygen_req_array[req_num] =
                 mb_queue_ecdhp384_keygen_dequeue(tlv->ecdhp384_keygen_queue)) != NULL) {
         ecdh_keygen_x[req_num] = ecdh_keygen_req_array[req_num]->x;
@@ -594,7 +568,6 @@ void process_ecdh_keygen_reqs(mb_thread_data *tlv, int curve)
         }
         break;
     case EC_SM2:
-        DEBUG("Dequeue SM2ECDH keygen reqs.\n");
         while ((ecdh_keygen_req_array[req_num] =
                 mb_queue_sm2ecdh_keygen_dequeue(tlv->sm2ecdh_keygen_queue)) != NULL) {
         ecdh_keygen_x[req_num] = ecdh_keygen_req_array[req_num]->x;
@@ -613,7 +586,6 @@ void process_ecdh_keygen_reqs(mb_thread_data *tlv, int curve)
 
     switch (curve) {
     case EC_P256:
-        DEBUG("Submitting %d ECDH p256 Keygen requests\n", local_request_no);
         num_ecdh_sw_keygen_reqs += local_request_no;
         ecdh_sts = mbx_nistp256_ecpublic_key_ssl_mb8(ecdh_keygen_x,
                                                      ecdh_keygen_y,
@@ -622,7 +594,6 @@ void process_ecdh_keygen_reqs(mb_thread_data *tlv, int curve)
                                                      NULL);
         break;
     case EC_P384:
-        DEBUG("Submitting %d ECDH p384 Keygen requests\n", local_request_no);
         num_ecdh_sw_keygen_reqs += local_request_no;
         ecdh_sts = mbx_nistp384_ecpublic_key_ssl_mb8(ecdh_keygen_x,
                                                      ecdh_keygen_y,
@@ -631,7 +602,6 @@ void process_ecdh_keygen_reqs(mb_thread_data *tlv, int curve)
                                                      NULL);
          break;
     case EC_SM2:
-        DEBUG("Submitting %d ECDH sm2 Keygen requests\n", local_request_no);
         ecdh_sts = mbx_sm2_ecpublic_key_ssl_mb8(ecdh_keygen_x,
                                                 ecdh_keygen_y,
                                                 ecdh_keygen_z,
@@ -643,7 +613,6 @@ void process_ecdh_keygen_reqs(mb_thread_data *tlv, int curve)
     for (req_num = 0; req_num < local_request_no; req_num++) {
          if (ecdh_keygen_req_array[req_num]->sts != NULL) {
              if (MBX_GET_STS(ecdh_sts, req_num) == MBX_STATUS_OK) {
-                 DEBUG("Multibuffer keygen request[%d] success\n", req_num);
                  *ecdh_keygen_req_array[req_num]->sts = 1;
             } else {
                 WARN("Multibuffer keygen request[%d] failure, sts %d \n",
@@ -677,7 +646,6 @@ void process_ecdh_keygen_reqs(mb_thread_data *tlv, int curve)
 # endif
 
     STOP_RDTSC(&ecdh_cycles_keygen_execute, 1, "[ECDH:keygen_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 void process_ecdh_compute_reqs(mb_thread_data *tlv, int curve)
@@ -698,7 +666,6 @@ void process_ecdh_compute_reqs(mb_thread_data *tlv, int curve)
 
     switch (curve) {
     case EC_P256:
-	    DEBUG("Dequeue ECDHP256 compute reqs.\n");
         while ((ecdh_compute_req_array[req_num] =
                 mb_queue_ecdhp256_compute_dequeue(tlv->ecdhp256_compute_queue)) != NULL) {
         ecdh_compute_shared_key[req_num] = ecdh_compute_req_array[req_num]->shared_key;
@@ -713,7 +680,6 @@ void process_ecdh_compute_reqs(mb_thread_data *tlv, int curve)
         }
         break;
 	case EC_P384:
-        DEBUG("Dequeue ECDHP384 compute reqs.\n");
         while ((ecdh_compute_req_array[req_num] =
                 mb_queue_ecdhp384_compute_dequeue(tlv->ecdhp384_compute_queue)) != NULL) {
         ecdh_compute_shared_key[req_num] = ecdh_compute_req_array[req_num]->shared_key;
@@ -729,7 +695,6 @@ void process_ecdh_compute_reqs(mb_thread_data *tlv, int curve)
         break;
 
     case EC_SM2:
-        DEBUG("Dequeue SM2ECDH compute reqs.\n");
         while ((ecdh_compute_req_array[req_num] =
                 mb_queue_sm2ecdh_compute_dequeue(tlv->sm2ecdh_compute_queue)) != NULL) {
         ecdh_compute_shared_key[req_num] = ecdh_compute_req_array[req_num]->shared_key;
@@ -749,7 +714,6 @@ void process_ecdh_compute_reqs(mb_thread_data *tlv, int curve)
 
     switch (curve) {
 	case EC_P256:
-        DEBUG("Submitting %d ECDH p256 Compute requests\n", local_request_no);
         num_ecdh_sw_derive_reqs += local_request_no;
         ecdh_sts = mbx_nistp256_ecdh_ssl_mb8(ecdh_compute_shared_key,
                                              ecdh_compute_privkey,
@@ -759,7 +723,6 @@ void process_ecdh_compute_reqs(mb_thread_data *tlv, int curve)
                                              NULL);
         break;
 	case EC_P384:
-        DEBUG("Submitting %d ECDH p384 Compute requests\n", local_request_no);
         num_ecdh_sw_derive_reqs += local_request_no;
         ecdh_sts = mbx_nistp384_ecdh_ssl_mb8(ecdh_compute_shared_key,
                                              ecdh_compute_privkey,
@@ -769,7 +732,6 @@ void process_ecdh_compute_reqs(mb_thread_data *tlv, int curve)
                                              NULL);
 	    break;
 	case EC_SM2:
-        DEBUG("Submitting %d SM2 ECDH Compute requests\n", local_request_no);
         ecdh_sts = mbx_sm2_ecdh_ssl_mb8(ecdh_compute_shared_key,
                                         ecdh_compute_privkey,
                                         ecdh_compute_x,
@@ -782,7 +744,6 @@ void process_ecdh_compute_reqs(mb_thread_data *tlv, int curve)
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (ecdh_compute_req_array[req_num]->sts != NULL) {
             if (MBX_GET_STS(ecdh_sts, req_num) == MBX_STATUS_OK) {
-                DEBUG("Multibuffer compute request[%d] success\n", req_num);
                 *ecdh_compute_req_array[req_num]->sts = 1;
             } else {
                 WARN("Multibuffer compute request[%d] failure, sts %d \n",
@@ -816,7 +777,6 @@ void process_ecdh_compute_reqs(mb_thread_data *tlv, int curve)
 # endif
 
     STOP_RDTSC(&ecdh_cycles_compute_execute, 1, "[ECDH:compute_execute]");
-    DEBUG("Processed Final Request\n");
 }
 #endif
 
@@ -895,7 +855,6 @@ int mb_ecdsa_sign(int type, const unsigned char *dgst, int dlen,
     int alloc_sig = 0;
 #endif /* QAT_BORINGSSL */
 
-    DEBUG("Entering \n");
 #ifdef ENABLE_QAT_FIPS
     qat_fips_get_approved_status();
 #endif
@@ -951,7 +910,6 @@ int mb_ecdsa_sign(int type, const unsigned char *dgst, int dlen,
     /* Check if we are running asynchronously */
     if ((job = ASYNC_get_current_job()) == NULL) {
 #ifndef ENABLE_QAT_FIPS
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
 #endif
     }
@@ -959,12 +917,10 @@ int mb_ecdsa_sign(int type, const unsigned char *dgst, int dlen,
     /* Setup asynchronous notifications */
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL && !qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications.\n");
         return ret;
     }
 #else
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 #endif
@@ -1002,7 +958,6 @@ int mb_ecdsa_sign(int type, const unsigned char *dgst, int dlen,
 #endif /* QAT_BORINGSSL */
     }
 
-    DEBUG("QAT SW ECDSA Started %p\n", ecdsa_sign_req);
     START_RDTSC(&ecdsa_cycles_sign_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -1078,7 +1033,6 @@ int mb_ecdsa_sign(int type, const unsigned char *dgst, int dlen,
         } while (BN_is_zero(k));
     } else {
         BN_mod_inverse(k, kinv, order, ctx);
-        DEBUG("Not Generating Random K\n");
     }
 #ifdef QAT_BORINGSSL
     waitctx = ASYNC_get_wait_ctx(job);
@@ -1154,7 +1108,6 @@ int mb_ecdsa_sign(int type, const unsigned char *dgst, int dlen,
 #endif
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -1168,7 +1121,6 @@ int mb_ecdsa_sign(int type, const unsigned char *dgst, int dlen,
         return -1;
     }
 #endif
-    DEBUG("Pausing: %p status = %d\n", ecdsa_sign_req, sts);
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL) {
 #endif
@@ -1185,7 +1137,6 @@ int mb_ecdsa_sign(int type, const unsigned char *dgst, int dlen,
                  sched_yield();
         } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-        DEBUG("Finished: %p status = %d\n", ecdsa_sign_req, sts);
 #ifdef ENABLE_QAT_FIPS
     }
 #endif
@@ -1196,7 +1147,6 @@ int mb_ecdsa_sign(int type, const unsigned char *dgst, int dlen,
         BN_bin2bn(sig + buflen, buflen, ecdsa_sig_s);
 
         *siglen = i2d_ECDSA_SIG(s, &sig);
-        DEBUG("siglen %d, dlen %d\n", *siglen, dlen);
         ECDSA_SIG_free(s);
         ret = 1;
     } else {
@@ -1272,7 +1222,6 @@ int mb_ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in,
     ecdsa_sign_setup_op_data *ecdsa_sign_setup_req = NULL;
     mb_thread_data *tlv = NULL;
 
-    DEBUG("Entering\n" );
     if (eckey == NULL || (group = EC_KEY_get0_group(eckey)) == NULL
         || (priv_key = EC_KEY_get0_private_key(eckey)) == NULL) {
         WARN("eckey, group or priv_key is  NULL\n");
@@ -1293,13 +1242,11 @@ int mb_ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in,
 
     /* Check if we are running asynchronously */
     if ((job = ASYNC_get_current_job()) == NULL) {
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
     }
 
     /* Setup asynchronous notifications */
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 
@@ -1321,7 +1268,6 @@ int mb_ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in,
         qat_pause_job(job, ASYNC_STATUS_EAGAIN);
     }
 
-    DEBUG("QAT SW ECDSA Started %p\n", ecdsa_sign_setup_req);
     START_RDTSC(&ecdsa_cycles_sign_setup_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -1353,7 +1299,6 @@ int mb_ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in,
     STOP_RDTSC(&ecdsa_cycles_sign_setup_setup, 1, "[ECDSA:sign_setup_setup]");
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -1362,7 +1307,6 @@ int mb_ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in,
         }
     }
 
-    DEBUG("Pausing: %p status = %d\n", ecdsa_sign_setup_req, sts);
     do {
         /* If we get a failure on qat_pause_job then we will
          * not flag an error here and quit because we have
@@ -1376,7 +1320,6 @@ int mb_ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in,
             sched_yield();
     } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-    DEBUG("Finished: %p status = %d\n", ecdsa_sign_setup_req, sts);
 
     /* Clear old values */
     BN_clear_free(*rp);
@@ -1433,7 +1376,6 @@ ECDSA_SIG *mb_ecdsa_sign_sig(const unsigned char *dgst, int dlen,
     ecdsa_sign_sig_op_data *ecdsa_sign_sig_req = NULL;
     mb_thread_data *tlv = NULL;
 
-    DEBUG("Entering\n" );
     if (unlikely(dgst == NULL || dlen <= 0 ||
                  eckey == NULL)) {
         WARN("Invalid Input param\n");
@@ -1464,13 +1406,11 @@ ECDSA_SIG *mb_ecdsa_sign_sig(const unsigned char *dgst, int dlen,
 
     /* Check if we are running asynchronously */
     if ((job = ASYNC_get_current_job()) == NULL) {
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
     }
 
     /* Setup asynchronous notifications */
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 
@@ -1492,7 +1432,6 @@ ECDSA_SIG *mb_ecdsa_sign_sig(const unsigned char *dgst, int dlen,
         qat_pause_job(job, ASYNC_STATUS_EAGAIN);
     }
 
-    DEBUG("QAT SW ECDSA Started %p\n", ecdsa_sign_sig_req);
     START_RDTSC(&ecdsa_cycles_sign_sig_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -1590,7 +1529,6 @@ ECDSA_SIG *mb_ecdsa_sign_sig(const unsigned char *dgst, int dlen,
     STOP_RDTSC(&ecdsa_cycles_sign_sig_setup, 1, "[ECDSA:sign_sig_setup]");
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -1599,7 +1537,6 @@ ECDSA_SIG *mb_ecdsa_sign_sig(const unsigned char *dgst, int dlen,
         }
     }
 
-    DEBUG("Pausing: %p status = %d\n", ecdsa_sign_sig_req, sts);
     do {
         /* If we get a failure on qat_pause_job then we will
          * not flag an error here and quit because we have
@@ -1613,7 +1550,6 @@ ECDSA_SIG *mb_ecdsa_sign_sig(const unsigned char *dgst, int dlen,
             sched_yield();
     } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-    DEBUG("Finished: %p status = %d\n", ecdsa_sign_sig_req, sts);
 
     /* Convert the buffers to BN */
     BN_bin2bn(sig_buf, buflen, ecdsa_sig_r);
@@ -1688,7 +1624,6 @@ int mb_ecdsa_verify(int type, const unsigned char *dgst,
     /* Check if we are running asynchronously */
     if ((job = ASYNC_get_current_job()) == NULL) {
 #ifndef ENABLE_QAT_FIPS
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
 #endif
     }
@@ -1696,12 +1631,10 @@ int mb_ecdsa_verify(int type, const unsigned char *dgst,
     /* Setup asynchronous notifications */
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL && !qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications.\n");
         return ret;
     }
 #else
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 #endif
@@ -1759,7 +1692,6 @@ int mb_ecdsa_do_verify(const unsigned char *dgst,
     mb_thread_data *tlv = NULL;
     BIGNUM *x = NULL, *y = NULL, *z = NULL;
 
-    DEBUG("Entering \n");
 #ifdef ENABLE_QAT_FIPS
     qat_fips_get_approved_status();
 #endif
@@ -1797,7 +1729,6 @@ int mb_ecdsa_do_verify(const unsigned char *dgst,
     /* Check if we are running asynchronously */
     if ((job = ASYNC_get_current_job()) == NULL) {
 #ifndef ENABLE_QAT_FIPS
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
 #endif
     }
@@ -1805,12 +1736,10 @@ int mb_ecdsa_do_verify(const unsigned char *dgst,
     /* Setup asynchronous notifications */
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL && !qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications.\n");
         return sts;
     }
 #else
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 #endif
@@ -1844,7 +1773,6 @@ int mb_ecdsa_do_verify(const unsigned char *dgst,
 # endif
     }
 
-    DEBUG("QAT SW ECDSA Verify Started %p\n", ecdsa_verify_req);
     START_RDTSC(&ecdsa_cycles_verify_setup);
 
     if ((ctx = BN_CTX_new()) == NULL) {
@@ -1922,7 +1850,6 @@ int mb_ecdsa_do_verify(const unsigned char *dgst,
 #endif
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -1930,7 +1857,6 @@ int mb_ecdsa_do_verify(const unsigned char *dgst,
              * will catch processing the request in the polling thread */
         }
     }
-    DEBUG("Pausing: %p status = %d\n", ecdsa_verify_req, sts);
 
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL) {
@@ -1948,7 +1874,6 @@ int mb_ecdsa_do_verify(const unsigned char *dgst,
                 sched_yield();
         } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-        DEBUG("Finished: %p status = %d\n", ecdsa_verify_req, sts);
 #ifdef ENABLE_QAT_FIPS
     }
 #endif
@@ -2022,13 +1947,11 @@ int mb_ecdh_generate_key(EC_KEY *ecdh)
 
     /* Check if we are running asynchronously */
     if ((job = ASYNC_get_current_job()) == NULL) {
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
     }
 
     /* Setup asynchronous notifications */
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 
@@ -2044,7 +1967,6 @@ int mb_ecdh_generate_key(EC_KEY *ecdh)
         qat_pause_job(job, ASYNC_STATUS_EAGAIN);
     }
 
-    DEBUG("QAT SW ECDH Started  %p\n", ecdh_keygen_req);
     START_RDTSC(&ecdh_cycles_keygen_setup);
 
     if ((ctx = BN_CTX_new()) == NULL) {
@@ -2135,7 +2057,6 @@ int mb_ecdh_generate_key(EC_KEY *ecdh)
     STOP_RDTSC(&ecdh_cycles_keygen_setup, 1, "[ECDH:keygen_setup]");
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -2144,7 +2065,6 @@ int mb_ecdh_generate_key(EC_KEY *ecdh)
         }
     }
 
-    DEBUG("Pausing: %p status = %d\n", ecdh_keygen_req, sts);
     do {
         /* If we get a failure on qat_pause_job then we will
          * not flag an error here and quit because we have
@@ -2158,7 +2078,6 @@ int mb_ecdh_generate_key(EC_KEY *ecdh)
             sched_yield();
     } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-    DEBUG("Finished: %p status = %d\n", ecdh_keygen_req, sts);
 
     if (!EC_POINT_set_Jprojective_coordinates_GFp(group, pub_key, x, y, z, ctx)) {
        WARN("Failure to set the Jacobian coordinates for public Key\n");
@@ -2248,7 +2167,6 @@ int mb_ecdh_compute_key(unsigned char **out,
     /* Check if we are running asynchronously */
     if ((job = ASYNC_get_current_job()) == NULL) {
 #ifndef ENABLE_QAT_FIPS
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
 #endif
     }
@@ -2256,12 +2174,10 @@ int mb_ecdh_compute_key(unsigned char **out,
     /* Setup asynchronous notifications */
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL && !qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications.\n");
         return sts;
     }
 #else
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 #endif
@@ -2289,7 +2205,6 @@ int mb_ecdh_compute_key(unsigned char **out,
 #endif
     }
 
-    DEBUG("QAT SW ECDH Started %p\n", ecdh_compute_req);
     START_RDTSC(&ecdh_cycles_compute_setup);
 
     if ((ctx = BN_CTX_new()) == NULL) {
@@ -2354,7 +2269,6 @@ int mb_ecdh_compute_key(unsigned char **out,
 #endif
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -2363,7 +2277,6 @@ int mb_ecdh_compute_key(unsigned char **out,
         }
     }
 
-    DEBUG("Pausing: %p status = %d\n", ecdh_compute_req, sts);
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL) {
 #endif
@@ -2380,7 +2293,6 @@ int mb_ecdh_compute_key(unsigned char **out,
                 sched_yield();
         } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-        DEBUG("Finished: %p status = %d\n", ecdh_compute_req, sts);
 #ifdef ENABLE_QAT_FIPS
     }
 #endif

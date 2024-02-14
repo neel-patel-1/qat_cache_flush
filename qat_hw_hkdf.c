@@ -133,7 +133,6 @@ EVP_PKEY_METHOD *qat_hkdf_pmeth(void)
     if (qat_hw_offload && (qat_hw_algo_enable_mask & ALGO_ENABLE_MASK_HKDF)) {
         qat_hkdf_pkey_methods();
         qat_hw_hkdf_offload = 1;
-        DEBUG("QAT HW HKDF Registration succeeded\n");
     } else {
         qat_hw_hkdf_offload = 0;
     }
@@ -141,7 +140,6 @@ EVP_PKEY_METHOD *qat_hkdf_pmeth(void)
 
     if (!qat_hw_hkdf_offload) {
 #ifndef QAT_OPENSSL_PROVIDER
-        DEBUG("QAT HW HKDF is disabled, using OpenSSL SW\n");
 #endif
 #ifndef QAT_OPENSSL_3
         EVP_PKEY_meth_copy(_hidden_hkdf_pmeth, sw_hkdf_pmeth);
@@ -280,7 +278,6 @@ void qat_hkdf_cleanup(EVP_PKEY_CTX *ctx)
 #ifndef QAT_OPENSSL_3
     if (qat_hkdf_ctx->fallback == 1 ||
         qat_get_qat_offload_disabled() || qat_get_sw_fallback_enabled()) {
-        DEBUG("- Switched to software mode or fallback mode enabled.\n");
         /* Clean up the sw_hkdf_ctx_data created by the init function */
         EVP_PKEY_meth_get_cleanup((EVP_PKEY_METHOD *)sw_hkdf_pmeth, &sw_cleanup_fn_ptr);
         EVP_PKEY_CTX_set_data(ctx, qat_hkdf_ctx->sw_hkdf_ctx_data);
@@ -789,21 +786,17 @@ int qat_hkdf_derive(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *olen)
 
 #if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
     if (qat_openssl3_hkdf_fallback == 1) {
-        DEBUG("- Switched to software mode\n");
         qat_hkdf_ctx->fallback = 1;
         goto err;
     }
 #endif
 
-    DEBUG("QAT HW HKDF Started\n");
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode\n");
         qat_hkdf_ctx->fallback = 1;
         goto err;
     }
 
     if (!qat_get_cipher_suite(qat_hkdf_ctx)) {
-        DEBUG("Failed to get cipher suite, fallback to SW\n");
         qat_hkdf_ctx->fallback = 1;
         goto err;
     }
@@ -943,7 +936,6 @@ int qat_hkdf_derive(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *olen)
         }
 
         DUMP_KEYGEN_TLS(qat_instance_handles[inst_num], generated_key);
-        DEBUG("Calling cpaCyKeyGenTls3 \n");
         status = cpaCyKeyGenTls3(qat_instance_handles[inst_num],
                                  qat_hkdf_cb, &op_done,
                                  qat_hkdf_ctx->hkdf_op_data,

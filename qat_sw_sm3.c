@@ -91,14 +91,12 @@ void process_sm3_init_reqs(mb_thread_data *tlv)
             break;
     }
     local_request_no = req_num;
-    DEBUG("Submitting %d SM3 init requests\n", local_request_no);
 
     sm3_sts = mbx_sm3_init_mb16(&sm3_init_ctx);
 
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (sm3_init_req_array[req_num]->sts != NULL) {
              if (MBX_GET_STS(sm3_sts, req_num) == MBX_STATUS_OK) {
-                 DEBUG("QAT_SW SM3 init request[%d] success\n", req_num);
                  *sm3_init_req_array[req_num]->sts = 1;
                  /* sm3_init_ctx->msg_buff_idx, msg_len and msg_buffer as it
                   * will be initialized to zero in cryto_mb as well */
@@ -124,7 +122,6 @@ void process_sm3_init_reqs(mb_thread_data *tlv)
 # endif
 
     STOP_RDTSC(&sm3_cycles_init_execute, 1, "[SM3:init_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 void process_sm3_update_reqs(mb_thread_data *tlv)
@@ -156,7 +153,6 @@ void process_sm3_update_reqs(mb_thread_data *tlv)
             break;
     }
     local_request_no = req_num;
-    DEBUG("Submitting %d SM3 Update requests\n", local_request_no);
 
     sm3_sts = mbx_sm3_update_mb16(sm3_data,
                                   sm3_data_len,
@@ -164,7 +160,6 @@ void process_sm3_update_reqs(mb_thread_data *tlv)
 
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (MBX_GET_STS(sm3_sts, req_num) == MBX_STATUS_OK) {
-            DEBUG("QAT_SW SM3 Update request[%d] success\n", req_num);
             *sm3_update_req_array[req_num]->sts = 1;
             sm3_update_req_array[req_num]->state->msg_buff_idx = sm3_update_ctx.msg_buff_idx[req_num];
             sm3_update_req_array[req_num]->state->msg_len = sm3_update_ctx.msg_len[req_num];
@@ -190,7 +185,6 @@ void process_sm3_update_reqs(mb_thread_data *tlv)
 # endif
 
     STOP_RDTSC(&sm3_cycles_update_execute, 1, "[SM3:update_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 void process_sm3_final_reqs(mb_thread_data *tlv)
@@ -220,13 +214,11 @@ void process_sm3_final_reqs(mb_thread_data *tlv)
             break;
     }
     local_request_no = req_num;
-    DEBUG("Submitting %d SM3 Final requests\n", local_request_no);
 
     sm3_sts = mbx_sm3_final_mb16(sm3_hash, &sm3_final_ctx);
 
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (MBX_GET_STS(sm3_sts, req_num) == MBX_STATUS_OK) {
-            DEBUG("QAT_SW SM3 Final request[%d] success\n", req_num);
             *sm3_final_req_array[req_num]->sts = 1;
             sm3_final_req_array[req_num]->state->msg_buff_idx = sm3_final_ctx.msg_buff_idx[req_num];
             sm3_final_req_array[req_num]->state->msg_len = sm3_final_ctx.msg_len[req_num];
@@ -252,7 +244,6 @@ void process_sm3_final_reqs(mb_thread_data *tlv)
 # endif
 
     STOP_RDTSC(&sm3_cycles_final_execute, 1, "[SM3:final_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 #ifndef QAT_OPENSSL_PROVIDER
@@ -295,7 +286,6 @@ int qat_sw_sm3_init(QAT_SM3_CTX_mb *ctx)
 
 # if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
     if (qat_openssl3_sm3_fallback == 1) {
-        DEBUG("- Switched to software mode\n");
         goto use_sw_method;
     }
 # endif
@@ -306,13 +296,11 @@ int qat_sw_sm3_init(QAT_SM3_CTX_mb *ctx)
 
     /* Check if we are running asynchronously. If not use the SW method */
     if ((job = ASYNC_get_current_job()) == NULL) {
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
     }
 
     /* Setup asynchronous notifications */
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 
@@ -328,7 +316,6 @@ int qat_sw_sm3_init(QAT_SM3_CTX_mb *ctx)
         qat_pause_job(job, ASYNC_STATUS_EAGAIN);
     }
 
-    DEBUG("QAT SW SM3 Init Started %p\n", sm3_init_req);
     START_RDTSC(&sm3_cycles_init_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -340,7 +327,6 @@ int qat_sw_sm3_init(QAT_SM3_CTX_mb *ctx)
     STOP_RDTSC(&sm3_cycles_init_setup, 1, "[SM3:init_setup]");
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_SM3_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -349,7 +335,6 @@ int qat_sw_sm3_init(QAT_SM3_CTX_mb *ctx)
         }
      }
 
-    DEBUG("Pausing: %p status = %d sm3_ctx %p\n", sm3_init_req, sts, sm3_init_req->state);
     do {
         /* If we get a failure on qat_pause_job then we will
            not flag an error here and quit because we have
@@ -363,7 +348,6 @@ int qat_sw_sm3_init(QAT_SM3_CTX_mb *ctx)
             sched_yield();
     } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-    DEBUG("Finished: %p status = %d\n", sm3_init_req, sts);
 
     if (sts) {
         return sts;
@@ -377,14 +361,12 @@ use_sw_method:
 #ifndef QAT_OPENSSL_PROVIDER
     sw_fn_ptr = EVP_MD_meth_get_init((EVP_MD *)EVP_sm3());
     sts = (*sw_fn_ptr)(ctx);
-    DEBUG("SW Finished %p\n", ctx);
     return sts;
 #else
     if (!EVP_DigestInit_ex2(sm3_ctx->sw_md_ctx, sm3_ctx->sw_md, NULL)) {
         WARN("Software calculate failed \n");
         return 0;
     }
-    DEBUG("SW Init Finished %p\n", sm3_ctx);
     return 1;
 #endif
 }
@@ -422,7 +404,6 @@ int qat_sw_sm3_update(QAT_SM3_CTX_mb *ctx, const void *in, size_t len)
 
 # if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
     if (qat_openssl3_sm3_fallback == 1) {
-        DEBUG("- Switched to software mode\n");
         goto use_sw_method;
     }
 # endif
@@ -433,13 +414,11 @@ int qat_sw_sm3_update(QAT_SM3_CTX_mb *ctx, const void *in, size_t len)
 
     /* Check if we are running asynchronously. If not use the SW method */
     if ((job = ASYNC_get_current_job()) == NULL) {
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
     }
 
     /* Setup asynchronous notifications */
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 
@@ -455,7 +434,6 @@ int qat_sw_sm3_update(QAT_SM3_CTX_mb *ctx, const void *in, size_t len)
         qat_pause_job(job, ASYNC_STATUS_EAGAIN);
     }
 
-    DEBUG("QAT SW SM3 Update Started %p len %zu\n", sm3_update_req, len);
     START_RDTSC(&sm3_cycles_update_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -470,7 +448,6 @@ int qat_sw_sm3_update(QAT_SM3_CTX_mb *ctx, const void *in, size_t len)
     STOP_RDTSC(&sm3_cycles_update_setup, 1, "[SM3:update_setup]");
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_SM3_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -479,7 +456,6 @@ int qat_sw_sm3_update(QAT_SM3_CTX_mb *ctx, const void *in, size_t len)
         }
      }
 
-    DEBUG("Pausing: %p status = %d sm3_ctx %p\n", sm3_update_req, sts, sm3_update_req->state);
     do {
         /* If we get a failure on qat_pause_job then we will
            not flag an error here and quit because we have
@@ -493,7 +469,6 @@ int qat_sw_sm3_update(QAT_SM3_CTX_mb *ctx, const void *in, size_t len)
             sched_yield();
     } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-    DEBUG("Finished: %p status = %d\n", sm3_update_req, sts);
 
     if (sts) {
        return sts;
@@ -507,14 +482,12 @@ use_sw_method:
 #ifndef QAT_OPENSSL_PROVIDER
     sw_fn_ptr = EVP_MD_meth_get_update((EVP_MD *)EVP_sm3());
     sts = (*sw_fn_ptr)(ctx, in, len);
-    DEBUG("SW Finished %p\n", ctx);
     return sts;
 #else
     if (!EVP_DigestUpdate(sm3_ctx->sw_md_ctx, in, len)) {
         WARN("Software calculate failed \n");
         return 0;
     }
-    DEBUG("SW Update Finished %p\n", sm3_ctx);
     return 1;
 #endif
 }
@@ -552,7 +525,6 @@ int qat_sw_sm3_final(QAT_SM3_CTX_mb *ctx, unsigned char *md)
 
 # if defined(QAT_OPENSSL_3) && !defined(QAT_OPENSSL_PROVIDER)
     if (qat_openssl3_sm3_fallback == 1) {
-        DEBUG("- Switched to software mode\n");
         goto use_sw_method;
     }
 # endif
@@ -563,13 +535,11 @@ int qat_sw_sm3_final(QAT_SM3_CTX_mb *ctx, unsigned char *md)
 
     /* Check if we are running asynchronously. If not use the SW method */
     if ((job = ASYNC_get_current_job()) == NULL) {
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
     }
 
     /* Setup asynchronous notifications */
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 
@@ -585,7 +555,6 @@ int qat_sw_sm3_final(QAT_SM3_CTX_mb *ctx, unsigned char *md)
         qat_pause_job(job, ASYNC_STATUS_EAGAIN);
     }
 
-    DEBUG("QAT SW SM3 final Started %p\n", sm3_final_req);
     START_RDTSC(&sm3_cycles_final_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -599,7 +568,6 @@ int qat_sw_sm3_final(QAT_SM3_CTX_mb *ctx, unsigned char *md)
     STOP_RDTSC(&sm3_cycles_final_setup, 1, "[SM3:final_setup]");
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_SM3_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -608,7 +576,6 @@ int qat_sw_sm3_final(QAT_SM3_CTX_mb *ctx, unsigned char *md)
         }
      }
 
-    DEBUG("Pausing: %p status = %d sm3_ctx %p\n", sm3_final_req, sts, sm3_final_req->state);
     do {
         /* If we get a failure on qat_pause_job then we will
            not flag an error here and quit because we have
@@ -622,7 +589,6 @@ int qat_sw_sm3_final(QAT_SM3_CTX_mb *ctx, unsigned char *md)
             sched_yield();
     } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-    DEBUG("Finished: %p status = %d\n", sm3_final_req, sts);
 
     if (sts) {
        return sts;
@@ -636,14 +602,12 @@ use_sw_method:
 #ifndef QAT_OPENSSL_PROVIDER
     sw_fn_ptr = EVP_MD_meth_get_final((EVP_MD *)EVP_sm3());
     sts = (*sw_fn_ptr)(ctx, md);
-    DEBUG("SW Finished %p\n", ctx);
     return sts;
 #else
     if (!EVP_DigestFinal_ex(sm3_ctx->sw_md_ctx, md, NULL)) {
         WARN("Software calculate failed \n");
         return 0;
     }
-    DEBUG("SW Final Finished %p\n", sm3_ctx);
     return 1;
 #endif
 }

@@ -297,7 +297,6 @@ static size_t dsa_get_md_size(const QAT_PROV_DSA_CTX *pdsactx)
 static void *qat_dsa_newctx(void *provctx, const char *propq)
 {
     QAT_PROV_DSA_CTX *pdsactx;
-    DEBUG("qat_dsa_newctx\n");
     if (!qat_prov_is_running())
         return NULL;
 

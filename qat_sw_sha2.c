@@ -322,7 +322,6 @@ int mb_qat_SHA2_final(QAT_SHA2_CTX *ctx, unsigned char *md)
     if (ctx->md_type == NID_sha384 || ctx->md_type == NID_sha512) {
         p = ctx->u.large_data;
     }
-    DEBUG("ctx = %p, NID = %d, in = %p, len = %d\n", ctx, nid, p, ctx->num);
 
     qat_imb_sha2(nid, sha_ipsec_mgr, ctx->md_type, p, ctx->num,
                  ctx->digest_data1);

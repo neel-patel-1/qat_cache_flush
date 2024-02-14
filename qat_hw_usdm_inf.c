@@ -58,14 +58,12 @@ static int crypto_inited = 0;
 static void crypto_init(void)
 {
     MEM_WARN("Memory Driver Warnings Enabled.\n");
-    MEM_DEBUG("Memory Driver Debug Enabled.\n");
 
     crypto_inited = 1;
 }
 
 void qaeCryptoMemFree(void *ptr)
 {
-    MEM_DEBUG("Address: %p\n", ptr);
 
     if (unlikely(NULL == ptr)) {
         MEM_WARN("qaeCryptoMemFree trying to free NULL pointer.\n");
@@ -77,7 +75,6 @@ void qaeCryptoMemFree(void *ptr)
 
 void qaeCryptoMemFreeNonZero(void *ptr)
 {
-    MEM_DEBUG("Address: %p\n", ptr);
 
     if (unlikely(NULL == ptr)) {
         MEM_WARN("qaeCryptoMemFreeNonZero trying to free NULL pointer.\n");

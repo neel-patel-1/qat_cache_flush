@@ -381,7 +381,6 @@ int qat_fips_ec_key_simple_check_key(const EC_KEY *eckey)
 int qat_fips_get_key_zeroize_status(void)
 {
     if (qat_fips_key_zeroize == 1)
-        DEBUG("zeroization done successfully!!..\n");
     else
         INFO("zeroization failure!!..\n");
     return qat_fips_key_zeroize;
@@ -390,7 +389,6 @@ int qat_fips_get_key_zeroize_status(void)
 int qat_fips_get_approved_status(void)
 {
     if (qat_fips_service_indicator) {
-        DEBUG("Running FIPS approved service.\n");
         return 1;
     } else {
         INFO("Requested service is not a FIPS approved service.\n");

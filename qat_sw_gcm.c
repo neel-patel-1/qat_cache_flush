@@ -196,7 +196,6 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX *ctx,
         QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_INIT_FAILURE);
         return 0;
     }
-	*/
 
     DEBUG("QAT SW GCM Started CTX = %p, key = %p, iv = %p, enc = %d\n",
          (void*)ctx, (void*)inkey, (void*)iv, enc);
@@ -220,14 +219,12 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX *ctx,
     /* If a key is set and a tag has already been calculated
      * this cipher ctx is being reused, so zero the gcm ctx and tag state variables */
     if (qctx->ckey_set && qctx->tag_calculated) {
-        memset(&(qctx->gcm_ctx), 0, sizeof(qctx->gcm_ctx));DEBUG("KEY SET AND TAG CALCULATED\n");
         qctx->tag_set = 0;
         qctx->tag_calculated = 0;
         }
 
     /* Allocate gcm auth tag */
     if (!qctx->tag) {
-        qctx->tag = OPENSSL_zalloc(EVP_GCM_TLS_TAG_LEN); DEBUG("ALLOCATING GCM AUTH TAG\n");
 
         if (qctx->tag) {
             qctx->tag_len = EVP_GCM_TLS_TAG_LEN;
@@ -251,7 +248,6 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX *ctx,
 
     /* Allocate gcm calculated_tag */
     if (!qctx->calculated_tag) {
-        qctx->calculated_tag = OPENSSL_zalloc(EVP_GCM_TLS_TAG_LEN);DEBUG("ALLOCATING CALCULATED GCM TAG\b");
 
         if (qctx->calculated_tag) {
             qctx->tag_calculated = 0;
@@ -268,7 +264,6 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX *ctx,
      *  it would have been set via ctrl function before we got here) */
     if (qctx->iv_len <=0) {
         qctx->iv_len = QAT_GCM_TLS_TOTAL_IV_LEN;
-        DEBUG("Setting IV length = %d\n", qctx->iv_len);
     }
 
     /* If we have an IV passed in and have yet to allocate memory for the IV */
@@ -285,7 +280,6 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX *ctx,
     /* IV passed in */
    if (iv != NULL) {
        if (qctx->iv) {
-           DEBUG("Copying iv to qctx->iv with qctx->iv_len = %d\n", qctx->iv_len);
            memcpy(qctx->iv, iv, qctx->iv_len);
            memcpy(qctx->next_iv, iv, qctx->iv_len);
            qctx->iv_set = 1;
@@ -657,7 +651,6 @@ int vaesgcm_ciphers_cleanup(EVP_CIPHER_CTX* ctx)
         OPENSSL_cleanse(&qctx->key_data, sizeof(qctx->key_data));
 
         if (qctx->iv) {
-            DEBUG("qctx->iv_len = %d\n", qctx->iv_len);
             OPENSSL_cleanse(qctx->iv, qctx->iv_len);
             qctx->iv = NULL;
             qctx->iv_set = 0;
@@ -670,7 +663,6 @@ int vaesgcm_ciphers_cleanup(EVP_CIPHER_CTX* ctx)
         }
 
         if (qctx->tls_aad) {
-            DEBUG("qctx->tls_aad_len = %d\n", qctx->tls_aad_len);
             OPENSSL_cleanse(qctx->tls_aad, EVP_AEAD_TLS1_AAD_LEN);
             qctx->tls_aad = NULL;
             qctx->tls_aad_len = -1;
@@ -685,9 +677,7 @@ int vaesgcm_ciphers_cleanup(EVP_CIPHER_CTX* ctx)
 
         if (qctx->tag) {
 #ifdef QAT_OPENSSL_PROVIDER
-            DEBUG("qctx->tag_len = %d\n", qctx->tag_len);
 #else
-            DEBUG("qctx->tag_len = %u\n", qctx->tag_len);
 #endif
             OPENSSL_cleanse(qctx->tag, qctx->tag_len);
             qctx->tag = NULL;
@@ -839,7 +829,6 @@ int aes_gcm_tls_cipher(EVP_CIPHER_CTX *ctx,
                                      EVP_GCM_TLS_TAG_LEN);
 
         if (memcmp(tag, tempTag, EVP_GCM_TLS_TAG_LEN) == 0) {
-            DEBUG("ctx = %p, nid = %d,GCM TAG Verification Successful\n", ctx, nid);
         }
 
         else {
@@ -963,7 +952,6 @@ int vaesgcm_ciphers_do_cipher(EVP_CIPHER_CTX*      ctx,
                                     gcm_ctx_ptr,
                                     qctx->iv, qctx->iv_len, in, len);
 
-        DEBUG("AAD passed in\n");
 #ifdef QAT_OPENSSL_PROVIDER
         *padlen = len;
         return 1;
@@ -1033,7 +1021,6 @@ int vaesgcm_ciphers_do_cipher(EVP_CIPHER_CTX*      ctx,
              * just like a DecryptFinal_Ex() call, so wait until control
              * function calls to set the tag */
             if (qctx->tag_set) {
-                DEBUG("Decrypt - GCM Tag Set so calling memcmp\n");
                 if (memcmp(qctx->calculated_tag, qctx->tag, qctx->tag_len) == 0) {
 #ifdef ENABLE_QAT_FIPS
                     return 1;

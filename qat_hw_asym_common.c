@@ -103,7 +103,6 @@ int qat_BN_to_FB(CpaFlatBuffer * fb, const BIGNUM *bn, int qat_svm)
     fb->dataLenInBytes = (Cpa32U) BN_num_bytes(bn);
     if (0 == fb->dataLenInBytes) {
         fb->pData = NULL;
-        DEBUG("Datalen = 0, zero byte memory allocation\n");
         return 1;
     }
     if (!qat_svm)
@@ -135,7 +134,6 @@ int qat_BN_to_FB_for_sm2(CpaFlatBuffer * fb, const BIGNUM *bn, int qat_svm)
     fb->dataLenInBytes = (Cpa32U) BN_num_bytes(bn);
     if (0 == fb->dataLenInBytes) {
         fb->pData = NULL;
-        DEBUG("Datalen = 0, zero byte memory allocation\n");
         return 1;
     }
     if (fb->dataLenInBytes < QAT_SM2_SIZE)
@@ -201,7 +199,6 @@ int qat_mod_exp(BIGNUM *res, const BIGNUM *base, const BIGNUM *exp,
     thread_local_variables_t *tlv = NULL;
     int qat_svm = QAT_INSTANCE_ANY;
 
-    DEBUG(" - Started\n");
 
     opData.base.pData = NULL;
     opData.exponent.pData = NULL;

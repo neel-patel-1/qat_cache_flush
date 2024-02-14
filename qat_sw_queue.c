@@ -64,7 +64,6 @@ mb_queue_rsa2k_priv * mb_queue_rsa2k_priv_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -105,7 +104,6 @@ int mb_queue_rsa2k_priv_cleanup(mb_queue_rsa2k_priv *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -113,7 +111,6 @@ int mb_queue_rsa2k_priv_enqueue(mb_queue_rsa2k_priv *queue,
                                 rsa_priv_op_data *item)
 {
     if (queue == NULL || item == NULL) {
-        DEBUG("Queue NULL\n");
         return 1;
     }
 
@@ -195,7 +192,6 @@ mb_queue_rsa2k_pub * mb_queue_rsa2k_pub_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -236,7 +232,6 @@ int mb_queue_rsa2k_pub_cleanup(mb_queue_rsa2k_pub *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -244,7 +239,6 @@ int mb_queue_rsa2k_pub_enqueue(mb_queue_rsa2k_pub *queue,
                                rsa_pub_op_data *item)
 {
     if (queue == NULL || item == NULL) {
-        DEBUG("Queue NULL\n");
         return 1;
     }
 
@@ -326,7 +320,6 @@ mb_queue_rsa3k_priv * mb_queue_rsa3k_priv_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -367,7 +360,6 @@ int mb_queue_rsa3k_priv_cleanup(mb_queue_rsa3k_priv *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -455,7 +447,6 @@ mb_queue_rsa3k_pub * mb_queue_rsa3k_pub_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -496,7 +487,6 @@ int mb_queue_rsa3k_pub_cleanup(mb_queue_rsa3k_pub *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -584,7 +574,6 @@ mb_queue_rsa4k_priv * mb_queue_rsa4k_priv_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -625,7 +614,6 @@ int mb_queue_rsa4k_priv_cleanup(mb_queue_rsa4k_priv *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -713,7 +701,6 @@ mb_queue_rsa4k_pub * mb_queue_rsa4k_pub_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -754,7 +741,6 @@ int mb_queue_rsa4k_pub_cleanup(mb_queue_rsa4k_pub *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -842,7 +828,6 @@ mb_queue_x25519_keygen * mb_queue_x25519_keygen_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -883,7 +868,6 @@ int mb_queue_x25519_keygen_cleanup(mb_queue_x25519_keygen *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -971,7 +955,6 @@ mb_queue_x25519_derive * mb_queue_x25519_derive_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -1012,7 +995,6 @@ int mb_queue_x25519_derive_cleanup(mb_queue_x25519_derive *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -1100,7 +1082,6 @@ mb_queue_ecdsap256_sign * mb_queue_ecdsap256_sign_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -1141,7 +1122,6 @@ int mb_queue_ecdsap256_sign_cleanup(mb_queue_ecdsap256_sign *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -1230,7 +1210,6 @@ mb_queue_ecdsap256_sign_setup * mb_queue_ecdsap256_sign_setup_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -1271,7 +1250,6 @@ int mb_queue_ecdsap256_sign_setup_cleanup(mb_queue_ecdsap256_sign_setup *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -1360,7 +1338,6 @@ mb_queue_ecdsap256_sign_sig * mb_queue_ecdsap256_sign_sig_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -1401,7 +1378,6 @@ int mb_queue_ecdsap256_sign_sig_cleanup(mb_queue_ecdsap256_sign_sig *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -1490,7 +1466,6 @@ mb_queue_ecdsap256_verify * mb_queue_ecdsap256_verify_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -1531,7 +1506,6 @@ int mb_queue_ecdsap256_verify_cleanup(mb_queue_ecdsap256_verify *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -1620,7 +1594,6 @@ mb_queue_ecdhp256_keygen * mb_queue_ecdhp256_keygen_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -1661,7 +1634,6 @@ int mb_queue_ecdhp256_keygen_cleanup(mb_queue_ecdhp256_keygen *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -1751,7 +1723,6 @@ mb_queue_ecdhp256_compute * mb_queue_ecdhp256_compute_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -1792,7 +1763,6 @@ int mb_queue_ecdhp256_compute_cleanup(mb_queue_ecdhp256_compute *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -1881,7 +1851,6 @@ mb_queue_ecdhp384_keygen * mb_queue_ecdhp384_keygen_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -1922,7 +1891,6 @@ int mb_queue_ecdhp384_keygen_cleanup(mb_queue_ecdhp384_keygen *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -2010,7 +1978,6 @@ mb_queue_ecdhp384_compute * mb_queue_ecdhp384_compute_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -2052,7 +2019,6 @@ int mb_queue_ecdhp384_compute_cleanup(mb_queue_ecdhp384_compute *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -2137,7 +2103,6 @@ mb_queue_ecdsap384_sign * mb_queue_ecdsap384_sign_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -2178,7 +2143,6 @@ int mb_queue_ecdsap384_sign_cleanup(mb_queue_ecdsap384_sign *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -2266,7 +2230,6 @@ mb_queue_ecdsap384_sign_setup * mb_queue_ecdsap384_sign_setup_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -2307,7 +2270,6 @@ int mb_queue_ecdsap384_sign_setup_cleanup(mb_queue_ecdsap384_sign_setup *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -2395,7 +2357,6 @@ mb_queue_ecdsap384_sign_sig * mb_queue_ecdsap384_sign_sig_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -2436,7 +2397,6 @@ int mb_queue_ecdsap384_sign_sig_cleanup(mb_queue_ecdsap384_sign_sig *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -2526,7 +2486,6 @@ mb_queue_ecdsap384_verify * mb_queue_ecdsap384_verify_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -2567,7 +2526,6 @@ int mb_queue_ecdsap384_verify_cleanup(mb_queue_ecdsap384_verify *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -2656,7 +2614,6 @@ mb_queue_sm2ecdh_keygen * mb_queue_sm2ecdh_keygen_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -2697,7 +2654,6 @@ int mb_queue_sm2ecdh_keygen_cleanup(mb_queue_sm2ecdh_keygen *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -2786,7 +2742,6 @@ mb_queue_sm2ecdh_compute * mb_queue_sm2ecdh_compute_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -2827,7 +2782,6 @@ int mb_queue_sm2ecdh_compute_cleanup(mb_queue_sm2ecdh_compute *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -2916,7 +2870,6 @@ mb_queue_sm3_init * mb_queue_sm3_init_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -2957,7 +2910,6 @@ int mb_queue_sm3_init_cleanup(mb_queue_sm3_init *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -3046,7 +2998,6 @@ mb_queue_sm3_update * mb_queue_sm3_update_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -3087,7 +3038,6 @@ int mb_queue_sm3_update_cleanup(mb_queue_sm3_update *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -3177,7 +3127,6 @@ mb_queue_sm3_final * mb_queue_sm3_final_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -3218,7 +3167,6 @@ int mb_queue_sm3_final_cleanup(mb_queue_sm3_final *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -3307,7 +3255,6 @@ mb_queue_ecdsa_sm2_sign * mb_queue_ecdsa_sm2_sign_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -3348,7 +3295,6 @@ int mb_queue_ecdsa_sm2_sign_cleanup(mb_queue_ecdsa_sm2_sign *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -3437,7 +3383,6 @@ mb_queue_ecdsa_sm2_verify * mb_queue_ecdsa_sm2_verify_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -3478,7 +3423,6 @@ int mb_queue_ecdsa_sm2_verify_cleanup(mb_queue_ecdsa_sm2_verify *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -3567,7 +3511,6 @@ mb_queue_sm4_cbc_cipher * mb_queue_sm4_cbc_cipher_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -3623,7 +3566,6 @@ int mb_queue_sm4_cbc_cipher_cleanup(mb_queue_sm4_cbc_cipher *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -3637,7 +3579,6 @@ int mb_queue_sm4_cbc_cipher_dec_cleanup(mb_queue_sm4_cbc_cipher *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -3761,7 +3702,6 @@ mb_queue_sm4_gcm_encrypt * mb_queue_sm4_gcm_encrypt_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -3802,7 +3742,6 @@ int mb_queue_sm4_gcm_encrypt_cleanup(mb_queue_sm4_gcm_encrypt *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -3891,7 +3830,6 @@ mb_queue_sm4_gcm_decrypt * mb_queue_sm4_gcm_decrypt_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -3932,7 +3870,6 @@ int mb_queue_sm4_gcm_decrypt_cleanup(mb_queue_sm4_gcm_decrypt *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -4023,7 +3960,6 @@ mb_queue_sm4_ccm_encrypt * mb_queue_sm4_ccm_encrypt_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -4064,7 +4000,6 @@ int mb_queue_sm4_ccm_encrypt_cleanup(mb_queue_sm4_ccm_encrypt *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 
@@ -4153,7 +4088,6 @@ mb_queue_sm4_ccm_decrypt * mb_queue_sm4_ccm_decrypt_create()
     if (queue == NULL)
         return NULL;
 
-    DEBUG("Queue Created %p\n", queue);
 
     if (!enable_external_polling) {
         pthread_mutex_init(&queue->mb_queue_mutex, NULL);
@@ -4194,7 +4128,6 @@ int mb_queue_sm4_ccm_decrypt_cleanup(mb_queue_sm4_ccm_decrypt *queue)
         OPENSSL_free(queue);
     }
 
-    DEBUG("Queue Freed%p\n", queue);
     return 0;
 }
 

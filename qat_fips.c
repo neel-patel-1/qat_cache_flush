@@ -503,10 +503,8 @@ int self_test_events(const OSSL_PARAM params[], void *arg)
     type = (const char *)p->data;
 
     if (strcmp(phase, OSSL_SELF_TEST_PHASE_START) == 0)
-        DEBUG("Self test start phase %s : (%s)\n", desc, type);
     else if (strcmp(phase, OSSL_SELF_TEST_PHASE_PASS) == 0
              || strcmp(phase, OSSL_SELF_TEST_PHASE_FAIL) == 0)
-        DEBUG("Self test phase : %s \n", phase);
 
     /*
      * The self test code will internally corrupt the KAT test result if an
@@ -630,7 +628,6 @@ int start_async_job(TEST_PARAMS *args, int (*func)(void *))
     select_timeout.tv_usec = 0;
     struct async_args_callback **ptr_async_args_callback = NULL;
 
-    DEBUG("start_async_job() - start\n");
     if (args->use_callback_mode == 1) {
         ptr_async_args_callback = (struct async_args_callback **)
             OPENSSL_zalloc(sizeof(struct async_args_callback *) *
@@ -666,14 +663,11 @@ int start_async_job(TEST_PARAMS *args, int (*func)(void *))
                                 sizeof(TEST_PARAMS))) {
         case ASYNC_ERR:
         case ASYNC_NO_JOBS:
-            DEBUG("ASYNC_ERR \n");
             break;
         case ASYNC_PAUSE:
             ++jobs_inprogress;
-            DEBUG("ASYNC_PAUSE \n");
             break;
         case ASYNC_FINISH:
-            DEBUG("ASYNC_FINISH \n");
             break;
         }
     }
@@ -730,7 +724,6 @@ int start_async_job(TEST_PARAMS *args, int (*func)(void *))
             }
             if (args->use_callback_mode == 1) {
                 /* reset the jobs_ready flag */
-                DEBUG("Resetting job_ready flag for async_job %d\n", i);
                 ptr_async_args_callback[i]->job_ready = 0;
             }
             switch (ASYNC_start_job(&args->jobs[i], args->awcs[i], &ret, func,
@@ -756,7 +749,6 @@ int start_async_job(TEST_PARAMS *args, int (*func)(void *))
         }
         OPENSSL_free(ptr_async_args_callback);
     }
-    DEBUG("start_async_job() returning status = %d\n", ret);
     return ret;
 }
 
@@ -1087,7 +1079,6 @@ int qat_fips_self_test(void *qatctx, int ondemand, int co_ex_enabled)
             kat_self_test_init(ondemand, co_ex_enabled);
         }
 
-        DEBUG("\n=================== QAT HW self tests result ===========\n");
         fips_result();
 
         /* Reset the values to make symmetric algorithms run in SW Platform
@@ -1138,7 +1129,6 @@ int qat_fips_self_test(void *qatctx, int ondemand, int co_ex_enabled)
             kat_self_test_init(ondemand, co_ex_enabled);
         }
 
-        DEBUG("\n=================== QAT SW self tests result ===========\n");
         fips_result();
 
         /* Reset the values to make asymmetric algorithms run in HW Platform

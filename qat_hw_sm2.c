@@ -587,7 +587,6 @@ int qat_sm2_sign(EVP_PKEY_CTX *ctx,
     const EC_KEY *eckey = EVP_PKEY_get0_EC_KEY(pkey);
 # endif
 
-    DEBUG("Entering \n");
     if (unlikely(eckey == NULL) || unlikely(siglen == NULL)) {
         WARN("Invalid Input params\n");
         QATerr(QAT_F_QAT_SM2_SIGN, QAT_R_INPUT_PARAM_INVALID);
@@ -632,7 +631,6 @@ int qat_sm2_sign(EVP_PKEY_CTX *ctx,
     }
 # endif
 
-    DEBUG("QAT HW SM2 Sign Started \n");
 
     if ((bctx = BN_CTX_new()) == NULL) {
         WARN("Failure to allocate ctx\n");
@@ -937,7 +935,6 @@ int qat_sm2_sign(EVP_PKEY_CTX *ctx,
     }
     *siglen = (unsigned int)sigleni;
     ret = 1;
-    DEBUG("Sign operation successful\n");
 
  err:
     if (!ret) {
@@ -1022,12 +1019,10 @@ int qat_sm2_sign(EVP_PKEY_CTX *ctx,
         /* When using OpenSSL 1.1.1 */
         EVP_PKEY_meth_get_sign((EVP_PKEY_METHOD *)sw_sm2_pmeth, NULL, &psign);
         ret = (*psign) (ctx, sig, siglen, tbs, tbslen);
-        DEBUG("SW Finished, ret: %d\n", ret);
         return ret;
 #  endif
 # endif
     }
-    DEBUG("- FinishedP: %d\n", ret);
     return ret;
 }
 
@@ -1087,7 +1082,6 @@ int qat_sm2_verify(EVP_PKEY_CTX *ctx,
     const EC_KEY *eckey = EVP_PKEY_get0_EC_KEY(pkey);
 # endif
 
-    DEBUG("Entering \n");
     if (unlikely(eckey == NULL) || unlikely(siglen == 0) ||
         unlikely(tbs == NULL) || unlikely(tbslen == 0)) {
         WARN("Invalid Input params\n");
@@ -1116,7 +1110,6 @@ int qat_sm2_verify(EVP_PKEY_CTX *ctx,
     }
 # endif
 
-    DEBUG("QAT HW SM2 Verify Started \n");
 
     if ((s = ECDSA_SIG_new()) == NULL) {
         WARN("Failure to allocate ECDSA_SIG_SM2\n");
@@ -1358,7 +1351,6 @@ int qat_sm2_verify(EVP_PKEY_CTX *ctx,
         }
     }
     while (!op_done.flag || QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
-    DEBUG("Verify Status %d\n", bSM2VerifyStatus);
     QAT_DEC_IN_FLIGHT_REQS(num_requests_in_flight, tlv);
 
     if (op_done.verifyResult != CPA_TRUE) {
@@ -1376,7 +1368,6 @@ int qat_sm2_verify(EVP_PKEY_CTX *ctx,
         qat_cleanup_op_done(&op_done);
         goto err;
     } else
-        DEBUG("Verification Status Success\n");
 
     qat_cleanup_op_done(&op_done);
     ret = 1;
@@ -1455,12 +1446,10 @@ int qat_sm2_verify(EVP_PKEY_CTX *ctx,
         EVP_PKEY_meth_get_verify((EVP_PKEY_METHOD *)sw_sm2_pmeth,
                                  NULL, &pverify);
         ret = (*pverify) (ctx, sig, siglen, tbs, tbslen);
-        DEBUG("SW Finished, ret: %d\n", ret);
         return ret;
 #  endif
 # endif
     }
-    DEBUG("- Finished\n");
     return ret;
 }
 #endif

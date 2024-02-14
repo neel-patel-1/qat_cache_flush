@@ -508,16 +508,6 @@ int qat_hw_init(ENGINE *e)
     int ret_pthread_sigmask;
     Cpa32U package_id = 0;
 
-    DEBUG("QAT_HW initialization:\n");
-    DEBUG("- External polling: %s\n", enable_external_polling ? "ON": "OFF");
-    DEBUG("- Heuristic polling: %s\n", enable_heuristic_polling ? "ON": "OFF");
-    DEBUG("- SW Fallback: %s\n", enable_sw_fallback ? "ON": "OFF");
-    DEBUG("- Inline polling: %s\n", enable_inline_polling ? "ON": "OFF");
-    DEBUG("- Internal poll interval: %dns\n", qat_poll_interval);
-    DEBUG("- Epoll timeout: %dms\n", qat_epoll_timeout);
-    DEBUG("- Event driven polling mode: %s\n", enable_event_driven_polling ? "ON": "OFF");
-    DEBUG("- Instance for thread: %s\n", enable_instance_for_thread ? "ON": "OFF");
-    DEBUG("- Max retry count: %d\n", qat_max_retry_count);
 
     qat_polling_thread = pthread_self();
 
@@ -556,7 +546,6 @@ int qat_hw_init(ENGINE *e)
         return 0;
     }
 
-    DEBUG("Found %d Cy instances\n", qat_num_instances);
 
     /* Allocate memory for the instance handle array */
     qat_instance_handles =
@@ -675,11 +664,9 @@ int qat_hw_init(ENGINE *e)
         }
 
         qat_instance_details[instNum].qat_instance_started = 1;
-        DEBUG("Started Instance No: %d Located on Device: %d\n", instNum, package_id);
 
 #if !defined(__FreeBSD__) && !defined(QAT_DRIVER_INTREE)
         if (enable_sw_fallback) {
-            DEBUG("cpaCyInstanceSetNotificationCb instNum = %d\n", instNum);
             status = cpaCyInstanceSetNotificationCb(qat_instance_handles[instNum],
                                                     qat_instance_notification_callbackFn,
                                                     (void *)(intptr_t)instNum);
@@ -804,13 +791,11 @@ int qat_hw_finish_int(ENGINE *e, int reset_globals)
     ENGINE_EPOLL_ST *epollst = NULL;
 #endif
 
-    DEBUG("---- QAT Finishing...\n\n");
 
 #ifdef ENABLE_QAT_HW_KPT
     if (kpt_enabled) {
         /* Finish KPT before engine finish if KPT is inited */
         if (kpt_inited) {
-            DEBUG("Start KPT Finishing.\n");
             qat_hw_kpt_finish();
 
             /* kpt_enabled can't be zeroed, otherwise child processes won't
@@ -819,7 +804,6 @@ int qat_hw_finish_int(ENGINE *e, int reset_globals)
             kpt_inited = 0;
         }
 
-        DEBUG("Reset the loaded WPK file number.\n");
         if (kpt_reset_wpk_num()) {
             WARN("Failure in kpt_reset_wpk_num.\n");
         }
@@ -904,7 +888,6 @@ int qat_hw_finish_int(ENGINE *e, int reset_globals)
     qatPerformOpRetries = 0;
 #endif
 
-    DEBUG("Calling pthread_key_delete()\n");
     pthread_key_delete(thread_local_variables);
     sem_destroy(&hw_polling_thread_sem); /* destroy qat hw semaphore: hw_polling_thread_sem. */
 
@@ -926,7 +909,6 @@ int qat_hw_finish_int(ENGINE *e, int reset_globals)
      */
     if (reset_globals == 1) {
 #ifdef ENABLE_QAT_HW_KPT
-        DEBUG("KPT reset globally\n");
         kpt_inited = 0;
         kpt_enabled = 0;
 #endif

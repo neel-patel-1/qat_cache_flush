@@ -149,7 +149,6 @@ static int qat_setup_op_params(EVP_CIPHER_CTX *ctx)
 
     if (qctx->op != NULL) {
         qat_sm4_cbc_free_op(qctx->op, qctx->qat_svm);
-        DEBUG("[%p] qop memory freed\n", ctx);
     }
 
     qctx->op = (qat_sm4_op_params *) OPENSSL_zalloc(sizeof(qat_sm4_op_params));
@@ -184,7 +183,6 @@ static int qat_setup_op_params(EVP_CIPHER_CTX *ctx)
         goto err;
     }
 
-    DEBUG("Size of meta data = %d\n", msize);
 
     if (msize) {
         qctx->op->src_sgl.pPrivateMetaData =
@@ -214,7 +212,6 @@ static int qat_setup_op_params(EVP_CIPHER_CTX *ctx)
     }
     opd->ivLenInBytes = (Cpa32U)iv_len;
 
-    DEBUG("[%p] op setup done.\n", ctx);
     return 1;
 
  err:
@@ -295,7 +292,6 @@ int qat_sm4_cbc_init(EVP_CIPHER_CTX *ctx,
         return 0;
     }
 
-    DEBUG("QAT HW SM4 CBC Started\n");
     INIT_SM4_CLEAR_ALL_FLAGS(qctx);
 #ifndef QAT_OPENSSL_PROVIDER
     if (iv != NULL)
@@ -419,7 +415,6 @@ int qat_sm4_cbc_init(EVP_CIPHER_CTX *ctx,
         }
         goto err;
     }
-    DEBUG("inst_num = %d inst mem type = %d\n", qctx->inst_num, qctx->qat_svm);
 
     DUMP_SESSION_SETUP_DATA(ssd);
     sts = cpaCySymSessionCtxGetSize(qat_instance_handles[qctx->inst_num], ssd, &sctx_size);
@@ -437,7 +432,6 @@ int qat_sm4_cbc_init(EVP_CIPHER_CTX *ctx,
         goto err;
     }
 
-    DEBUG("Size of session ctx = %d\n", sctx_size);
     sctx = (CpaCySymSessionCtx) qat_mem_alloc(sctx_size, qctx->qat_svm,
                                               __FILE__, __LINE__);
     if (sctx == NULL) {
@@ -452,7 +446,6 @@ int qat_sm4_cbc_init(EVP_CIPHER_CTX *ctx,
 
     INIT_SM4_SET_FLAG(qctx, INIT_SM4_QAT_CTX_INIT);
 
-    DEBUG("[%p] qat chained cipher ctx %p initialised\n",ctx, qctx);
     return 1;
 
  err:
@@ -468,7 +461,6 @@ int qat_sm4_cbc_init(EVP_CIPHER_CTX *ctx,
 #else
         if (ret == 1) {
 #endif
-            DEBUG("- Fallback to software mode.\n");
             CRYPTO_QAT_LOG("Resubmitting request to SW - %s\n", __func__);
             return ret; /* result returned from running software init function */
         }
@@ -561,7 +553,6 @@ int qat_sm4_cbc_cleanup(EVP_CIPHER_CTX *ctx)
 
     qctx->fallback = 0;
     INIT_SM4_CLEAR_ALL_FLAGS(qctx);
-    DEBUG("[%p] EVP CTX cleaned up\n", ctx);
     return retVal;
 }
 
@@ -688,7 +679,6 @@ int qat_sm4_cbc_do_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
        speed on the last request when measuring cipher performance. Speed is
        written to measure performance using partial requests.*/
     if (in == NULL && out != NULL && enc) {
-        DEBUG("QAT partial requests work-around: NULL input buffer passed.\n");
         return 0;
     } else if (in == NULL || out == NULL) {
         WARN("in and out cannot be NULL pointer!\n");
@@ -697,9 +687,7 @@ int qat_sm4_cbc_do_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     }
 
     if (!INIT_SM4_IS_FLAG_SET(qctx, INIT_SM4_QAT_SESSION_INIT)) {
-        DEBUG("inst_num = %d\n", qctx->inst_num);
         DUMP_SESSION_SETUP_DATA(qctx->session_data);
-        DEBUG("session_ctx = %p\n", qctx->session_ctx);
 
         if (!(is_instance_available(qctx->inst_num))) {
             WARN("No QAT instance available so not initialising session.\n");
@@ -774,7 +762,6 @@ int qat_sm4_cbc_do_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     }
 #endif
 
-    DEBUG("[%p] Start Cipher operation.\n", ctx);
 
     tlv = qat_check_create_local_variables();
     if (NULL == tlv) {
@@ -833,7 +820,6 @@ int qat_sm4_cbc_do_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     /* QAT_HW return retry, 16 requests will switche to QAT SW to be processed. */
 #if defined(ENABLE_QAT_SW_SM4_CBC) && !defined(QAT_OPENSSL_PROVIDER)
     if (qat_sm4_cbc_coexist && (sts == CPA_STATUS_RETRY)) {
-        DEBUG("Qat retry occurred.\n");
         qaeCryptoMemFreeNonZero(qctx->op->src_fbuf.pData);
         qctx->op->src_fbuf.pData = NULL;
         qctx->op->dst_fbuf.pData = NULL;
@@ -944,9 +930,7 @@ int qat_sm4_cbc_do_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 #else
         memcpy(ctx->iv, out + len - ctx->ivlen, ctx->ivlen);
 #endif
-        DEBUG("Encryption succeeded.\n");
     } else {
-        DEBUG("Decryption succeeded.\n");
     }
 
 #ifndef ENABLE_QAT_SMALL_PKT_OFFLOAD
@@ -954,7 +938,6 @@ cleanup:
 #endif
 fallback:
     if (qctx->fallback == 1) {
-        DEBUG("- Switched to OpenSSL SW mode.\n");
         CRYPTO_QAT_LOG("Resubmitting request to OpenSSL SW - %s\n", __func__);
 #ifndef QAT_OPENSSL_PROVIDER
         EVP_CIPHER_CTX_set_cipher_data(ctx, qctx->sw_ctx_cipher_data);

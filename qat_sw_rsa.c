@@ -305,7 +305,6 @@ void process_RSA_priv_reqs(mb_thread_data *tlv, int rsa_bits)
 
     switch(rsa_bits) {
     case RSA_2K_LENGTH:
-        DEBUG("Dequeue RSA2K priv reqs.\n");
         while ((rsa_priv_req_array[req_num] =
                 mb_queue_rsa2k_priv_dequeue(tlv->rsa2k_priv_queue)) != NULL) {
             rsa_priv_from[req_num] = rsa_priv_req_array[req_num]->from;
@@ -325,7 +324,6 @@ void process_RSA_priv_reqs(mb_thread_data *tlv, int rsa_bits)
         }
         break;
     case RSA_3K_LENGTH:
-        DEBUG("Dequeue RSA3K priv reqs.\n");
         while ((rsa_priv_req_array[req_num] =
                 mb_queue_rsa3k_priv_dequeue(tlv->rsa3k_priv_queue)) != NULL) {
             rsa_priv_from[req_num] = rsa_priv_req_array[req_num]->from;
@@ -345,7 +343,6 @@ void process_RSA_priv_reqs(mb_thread_data *tlv, int rsa_bits)
          }
          break;
     case RSA_4K_LENGTH:
-         DEBUG("Dequeue RSA4K priv reqs.\n");
          while ((rsa_priv_req_array[req_num] =
                  mb_queue_rsa4k_priv_dequeue(tlv->rsa4k_priv_queue)) != NULL) {
              rsa_priv_from[req_num] = rsa_priv_req_array[req_num]->from;
@@ -366,7 +363,6 @@ void process_RSA_priv_reqs(mb_thread_data *tlv, int rsa_bits)
          break;
     }
     local_request_no = req_num;
-    DEBUG("Submitting %d priv requests\n", local_request_no);
     num_rsa_sw_priv_reqs += local_request_no;
 
     rsa_sts = mbx_rsa_private_crt_ssl_mb8(rsa_priv_from,
@@ -381,7 +377,6 @@ void process_RSA_priv_reqs(mb_thread_data *tlv, int rsa_bits)
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (rsa_priv_req_array[req_num]->sts != NULL) {
             if (MBX_GET_STS(rsa_sts, req_num) == MBX_STATUS_OK) {
-                DEBUG("Multibuffer rsa priv crt req[%d] success\n", req_num);
                 *rsa_priv_req_array[req_num]->sts = 1;
             } else {
                 WARN("Multibuffer rsa priv crt req[%d] failure\n", req_num);
@@ -414,7 +409,6 @@ void process_RSA_priv_reqs(mb_thread_data *tlv, int rsa_bits)
                     WARN("Multibuffer rsa priv req[%d] failure\n", req_num);
                     *rsa_priv_req_array[req_num]->sts = -1;
                 } else {
-                    DEBUG("Multibuffer rsa priv req[%d] success\n", req_num);
                     *rsa_priv_req_array[req_num]->sts = 1;
                 }
                 if (!rsa_priv_req_array[req_num]->disable_lenstra_check) {
@@ -472,7 +466,6 @@ void process_RSA_priv_reqs(mb_thread_data *tlv, int rsa_bits)
 # endif
 
     STOP_RDTSC(&rsa_cycles_priv_execute, 1, "[RSA:priv_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 void process_RSA_pub_reqs(mb_thread_data *tlv, int rsa_bits)
@@ -490,7 +483,6 @@ void process_RSA_pub_reqs(mb_thread_data *tlv, int rsa_bits)
 
     switch(rsa_bits) {
     case RSA_2K_LENGTH:
-        DEBUG("Dequeue RSA2K pub reqs.\n");
         while ((rsa_pub_req_array[req_num] =
                 mb_queue_rsa2k_pub_dequeue(tlv->rsa2k_pub_queue)) != NULL) {
             rsa_pub_from[req_num] = rsa_pub_req_array[req_num]->from;
@@ -507,7 +499,6 @@ void process_RSA_pub_reqs(mb_thread_data *tlv, int rsa_bits)
         }
         break;
     case RSA_3K_LENGTH:
-        DEBUG("Dequeue RSA3K pub reqs.\n");
         while ((rsa_pub_req_array[req_num] =
                 mb_queue_rsa3k_pub_dequeue(tlv->rsa3k_pub_queue)) != NULL) {
             rsa_pub_from[req_num] = rsa_pub_req_array[req_num]->from;
@@ -524,7 +515,6 @@ void process_RSA_pub_reqs(mb_thread_data *tlv, int rsa_bits)
         }
         break;
     case RSA_4K_LENGTH:
-        DEBUG("Dequeue RSA4K pub reqs.\n");
         while ((rsa_pub_req_array[req_num] =
                 mb_queue_rsa4k_pub_dequeue(tlv->rsa4k_pub_queue)) != NULL) {
             rsa_pub_from[req_num] = rsa_pub_req_array[req_num]->from;
@@ -542,7 +532,6 @@ void process_RSA_pub_reqs(mb_thread_data *tlv, int rsa_bits)
         break;
     }
     local_request_no = req_num;
-    DEBUG("Submitting %d pub requests\n", local_request_no);
     num_rsa_sw_pub_reqs += local_request_no;
 
     rsa_sts = mbx_rsa_public_ssl_mb8(rsa_pub_from,
@@ -554,10 +543,8 @@ void process_RSA_pub_reqs(mb_thread_data *tlv, int rsa_bits)
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (rsa_pub_req_array[req_num]->sts != NULL) {
             if (MBX_GET_STS(rsa_sts, req_num) == MBX_STATUS_OK) {
-                DEBUG("Multibuffer RSA pub req[%d] success\n", req_num);
                 *rsa_pub_req_array[req_num]->sts = 1;
             } else {
-                DEBUG("Multibuffer RSA pub req[%d] failure\n", req_num);
                 *rsa_pub_req_array[req_num]->sts = -1;
             }
             /* Remove Padding here if needed */
@@ -592,7 +579,6 @@ void process_RSA_pub_reqs(mb_thread_data *tlv, int rsa_bits)
 # endif
 
     STOP_RDTSC(&rsa_cycles_pub_execute, 1, "[RSA:pub_execute]");
-    DEBUG("Processed Final Request\n");
 }
 
 int multibuff_rsa_priv_enc(int flen, const unsigned char *from,
@@ -644,7 +630,6 @@ int multibuff_rsa_priv_enc(int flen, const unsigned char *from,
     /* Check the length passed in is not longer than the rsa key length.
        If it is then use the sw method synchronously. */
     if (flen > rsa_len) {
-        DEBUG("The length is longer than the RSA key length, using sw method\n");
 #ifndef ENABLE_QAT_FIPS
         goto use_sw_method;
 #else
@@ -655,7 +640,6 @@ int multibuff_rsa_priv_enc(int flen, const unsigned char *from,
     /* Check if we are running asynchronously. If not use the SW method */
     if ((job = ASYNC_get_current_job()) == NULL) {
 #ifndef ENABLE_QAT_FIPS
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
 #endif
     }
@@ -663,12 +647,10 @@ int multibuff_rsa_priv_enc(int flen, const unsigned char *from,
     /* Setup asynchronous notifications */
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL && !qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications.\n");
         return sts;
     }
 #else
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 #endif
@@ -677,7 +659,6 @@ int multibuff_rsa_priv_enc(int flen, const unsigned char *from,
 
     /* Check if the request key size is supported */
     if (!multibuff_rsa_range_check(rsa_bits)) {
-        DEBUG("Requested key size not supported, use sw method %d\n", rsa_bits);
 #ifndef ENABLE_QAT_FIPS
         goto use_sw_method;
 #else
@@ -711,7 +692,6 @@ int multibuff_rsa_priv_enc(int flen, const unsigned char *from,
 #endif /* QAT_BORINGSSL */
     }
 
-    DEBUG("QAT SW RSA Started %p\n", rsa_priv_req);
     START_RDTSC(&rsa_cycles_priv_enc_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -738,7 +718,6 @@ int multibuff_rsa_priv_enc(int flen, const unsigned char *from,
     if (e == NULL ||
         e_check == NULL ||
         BN_ucmp(e, e_check) != 0) {
-        DEBUG("Disabling Lenstra Check\n");
         rsa_priv_req->disable_lenstra_check = 1;
     } else {
         rsa_priv_req->disable_lenstra_check = 0;
@@ -831,7 +810,6 @@ int multibuff_rsa_priv_enc(int flen, const unsigned char *from,
 #endif
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -847,7 +825,6 @@ int multibuff_rsa_priv_enc(int flen, const unsigned char *from,
     }
 #endif /* QAT_BORINGSSL */
 
-    DEBUG("Pausing: %p status = %d\n", rsa_priv_req, sts);
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL) {
 #endif
@@ -864,7 +841,6 @@ int multibuff_rsa_priv_enc(int flen, const unsigned char *from,
                 sched_yield();
         } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-        DEBUG("Finished: %p status = %d\n", rsa_priv_req, sts);
 #ifdef ENABLE_QAT_FIPS
     }
 #endif
@@ -894,7 +870,6 @@ use_sw_method:
         }
     }
 # endif /* QAT_BORINGSSL */
-    DEBUG("SW Finished\n");
     return sts;
 }
 
@@ -945,7 +920,6 @@ int multibuff_rsa_priv_dec(int flen, const unsigned char *from,
     /* Check the length passed in is not longer than the rsa key length.
        If it is then use the sw method synchronously. */
     if (flen > rsa_len) {
-        DEBUG("The length is longer than the RSA key length, using sw method\n");
 #ifndef ENABLE_QAT_FIPS
         goto use_sw_method;
 #else
@@ -956,7 +930,6 @@ int multibuff_rsa_priv_dec(int flen, const unsigned char *from,
     /* Check if we are running asynchronously. If not use the SW method */
     if ((job = ASYNC_get_current_job()) == NULL) {
 #ifndef ENABLE_QAT_FIPS
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
 #endif
     }
@@ -964,12 +937,10 @@ int multibuff_rsa_priv_dec(int flen, const unsigned char *from,
     /* Setup asynchronous notifications */
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL && !qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications.\n");
         return sts;
     }
 #else
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 #endif
@@ -978,7 +949,6 @@ int multibuff_rsa_priv_dec(int flen, const unsigned char *from,
 
     /* Check if the request key size is supported */
     if (!multibuff_rsa_range_check(rsa_bits)) {
-        DEBUG("Requested key size not supported, use sw method %d\n", rsa_bits);
 #ifndef ENABLE_QAT_FIPS
         goto use_sw_method;
 #else
@@ -1012,7 +982,6 @@ int multibuff_rsa_priv_dec(int flen, const unsigned char *from,
 #endif /* QAT_BORINGSSL */
     }
 
-    DEBUG("QAT SW RSA Started %p\n", rsa_priv_req);
     START_RDTSC(&rsa_cycles_priv_dec_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -1039,7 +1008,6 @@ int multibuff_rsa_priv_dec(int flen, const unsigned char *from,
     if (e == NULL ||
         e_check == NULL ||
         BN_ucmp(e, e_check) != 0) {
-        DEBUG("Disabling Lenstra Check\n");
         rsa_priv_req->disable_lenstra_check = 1;
     } else {
         rsa_priv_req->disable_lenstra_check = 0;
@@ -1114,7 +1082,6 @@ int multibuff_rsa_priv_dec(int flen, const unsigned char *from,
 #endif
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -1130,7 +1097,6 @@ int multibuff_rsa_priv_dec(int flen, const unsigned char *from,
     }
 #endif /* QAT_BORINGSSL */
 
-    DEBUG("Pausing: %p status = %d\n", rsa_priv_req, sts);
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL) {
 #endif
@@ -1147,7 +1113,6 @@ int multibuff_rsa_priv_dec(int flen, const unsigned char *from,
                 sched_yield();
         } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-        DEBUG("Finished: %p status = %d\n", rsa_priv_req, sts);
 #ifdef ENABLE_QAT_FIPS
     }
 #endif
@@ -1175,7 +1140,6 @@ use_sw_method:
         }
     }
 # endif /* QAT_BORINGSSL */
-    DEBUG("SW Finished\n");
     return sts;
 }
 
@@ -1219,7 +1183,6 @@ int multibuff_rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to
     /* Check if we are running asynchronously. If not use the SW method */
     if ((job = ASYNC_get_current_job()) == NULL) {
 #ifndef ENABLE_QAT_FIPS
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
 #endif
     }
@@ -1227,12 +1190,10 @@ int multibuff_rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to
     /* Setup asynchronous notifications */
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL && !qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications.\n");
         return sts;
     }
 #else
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 #endif
@@ -1241,7 +1202,6 @@ int multibuff_rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to
 
     /* Check if the request key size is supported */
     if (!multibuff_rsa_range_check(rsa_bits)) {
-        DEBUG("Requested key size not supported, use sw method %d\n", rsa_bits);
 #ifndef ENABLE_QAT_FIPS
         goto use_sw_method;
 #else
@@ -1271,7 +1231,6 @@ int multibuff_rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to
 #endif
     }
 
-    DEBUG("QAT SW RSA Started %p\n", rsa_pub_req);
     START_RDTSC(&rsa_cycles_pub_enc_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -1284,7 +1243,6 @@ int multibuff_rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to
         BN_ucmp(e, e_check) != 0) {
         mb_flist_rsa_pub_push(tlv->rsa_pub_freelist, rsa_pub_req);
         STOP_RDTSC(&rsa_cycles_pub_enc_setup, 1, "[RSA:pub_enc_setup]");
-        DEBUG("Request is using a public exp not equal to 65537\n");
 #ifndef ENABLE_QAT_FIPS
         goto use_sw_method;
 #else
@@ -1340,7 +1298,6 @@ int multibuff_rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to
 #endif
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -1349,7 +1306,6 @@ int multibuff_rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to
         }
     }
 
-    DEBUG("Pausing: %p status = %d\n", rsa_pub_req, sts);
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL) {
 #endif
@@ -1366,7 +1322,6 @@ int multibuff_rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to
                 sched_yield();
         } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-        DEBUG("Finished: %p status = %d\n", rsa_pub_req, sts);
 #ifdef ENABLE_QAT_FIPS
     }
 #endif
@@ -1382,7 +1337,6 @@ int multibuff_rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to
 
 use_sw_method:
     sts = RSA_meth_get_pub_enc(RSA_PKCS1_OpenSSL())(flen, from, to, rsa, padding);
-    DEBUG("SW Finished\n");
     return sts;
 }
 
@@ -1424,7 +1378,6 @@ int multibuff_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to
     /* Check if we are running asynchronously. If not use the SW method */
     if ((job = ASYNC_get_current_job()) == NULL) {
 #ifndef ENABLE_QAT_FIPS
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
 #endif
     }
@@ -1432,12 +1385,10 @@ int multibuff_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to
     /* Setup asynchronous notifications */
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL && !qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications.\n");
         return sts;
     }
 #else
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 #endif
@@ -1446,7 +1397,6 @@ int multibuff_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to
 
     /* Check if the request key size is supported */
     if (!multibuff_rsa_range_check(rsa_bits)) {
-        DEBUG("Requested key size not supported, use sw method %d\n", rsa_bits);
 #ifndef ENABLE_QAT_FIPS
         goto use_sw_method;
 #else
@@ -1476,7 +1426,6 @@ int multibuff_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to
 #endif
     }
 
-    DEBUG("QAT SW RSA Started %p\n", rsa_pub_req);
     START_RDTSC(&rsa_cycles_pub_dec_setup);
 
     /* Buffer up the requests and call the new functions when we have enough
@@ -1489,7 +1438,6 @@ int multibuff_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to
         BN_ucmp(e, e_check) != 0) {
         mb_flist_rsa_pub_push(tlv->rsa_pub_freelist, rsa_pub_req);
         STOP_RDTSC(&rsa_cycles_pub_dec_setup, 1, "[RSA:pub_dec_setup]");
-        DEBUG("Request is using a public exp not equal to 65537\n");
 #ifndef ENABLE_QAT_FIPS
         goto use_sw_method;
 #else
@@ -1526,7 +1474,6 @@ int multibuff_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to
 #endif
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -1535,7 +1482,6 @@ int multibuff_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to
         }
     }
 
-    DEBUG("Pausing: %p status = %d\n", rsa_pub_req, sts);
 #ifdef ENABLE_QAT_FIPS
     if (job != NULL) {
 #endif
@@ -1552,7 +1498,6 @@ int multibuff_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to
                 sched_yield();
         } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-        DEBUG("Finished: %p status = %d\n", rsa_pub_req, sts);
 #ifdef ENABLE_QAT_FIPS
     }
 #endif
@@ -1566,7 +1511,6 @@ int multibuff_rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to
 
 use_sw_method:
     sts = RSA_meth_get_pub_dec(RSA_PKCS1_OpenSSL())(flen, from, to, rsa, padding);
-    DEBUG("SW Finished\n");
     return sts;
 }
 

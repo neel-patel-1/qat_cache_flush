@@ -277,12 +277,10 @@ const EVP_CIPHER *qat_create_cipher_meth(int nid, int keylen)
         }
 
         qat_hw_aes_cbc_hmac_sha_offload = 1;
-        DEBUG("QAT HW AES_CBC_%d_HMAC_SHA registration succeeded\n", keylen*8);
 #endif
         return c;
     } else {
         qat_hw_aes_cbc_hmac_sha_offload = 0;
-        DEBUG("QAT HW AES_CBC_%d_HMAC_SHA is disabled, using OpenSSL SW\n", keylen*8);
         EVP_CIPHER_meth_free(c);
         return qat_chained_cipher_sw_impl(nid);
     }
@@ -407,7 +405,6 @@ static int qat_setup_op_params(EVP_CIPHER_CTX *ctx)
          */
         if (qctx->qop != NULL && qctx->qop_len < qctx->numpipes) {
             qat_chained_ciphers_free_qop(&qctx->qop, &qctx->qop_len, qctx->qat_svm);
-            DEBUG_PPL("[%p] qop memory freed\n", ctx);
         }
     }
 
@@ -465,8 +462,6 @@ static int qat_setup_op_params(EVP_CIPHER_CTX *ctx)
         qctx->qop[i].dst_sgl.pUserData = NULL;
         qctx->qop[i].dst_sgl.pPrivateMetaData = NULL;
 
-        DEBUG("Pipe [%d] inst_num = %d\n", i, qctx->inst_num);
-        DEBUG("Pipe [%d] No of buffers = %d\n", i, qctx->qop[i].src_sgl.numBuffers);
 
         /* setup meta data for buffer lists */
         if (msize == 0 &&
@@ -477,7 +472,6 @@ static int qat_setup_op_params(EVP_CIPHER_CTX *ctx)
             goto err;
         }
 
-        DEBUG("Pipe [%d] Size of meta data = %d\n", i, msize);
 
         if (msize) {
             qctx->qop[i].src_sgl.pPrivateMetaData =
@@ -514,7 +508,6 @@ static int qat_setup_op_params(EVP_CIPHER_CTX *ctx)
 #endif
     }
 
-    DEBUG_PPL("[%p] qop setup for %u elements\n", ctx, qctx->qop_len);
     return 1;
 
 err:
@@ -580,7 +573,6 @@ int qat_chained_ciphers_init(EVP_CIPHER_CTX *ctx,
         return 0;
     }
 
-    DEBUG("QAT HW Ciphers Started\n");
     INIT_SEQ_CLEAR_ALL_FLAGS(qctx);
 
 /* iv has been initialized in qatprovider, we don't 
@@ -748,7 +740,6 @@ int qat_chained_ciphers_init(EVP_CIPHER_CTX *ctx,
         goto err;
     }
 
-    DEBUG("Size of session ctx = %d\n", sctx_size);
     sctx = (CpaCySymSessionCtx) qat_mem_alloc(sctx_size, qctx->qat_svm, __FILE__,
                                                       __LINE__);
     if (sctx == NULL) {
@@ -761,7 +752,6 @@ int qat_chained_ciphers_init(EVP_CIPHER_CTX *ctx,
 
     INIT_SEQ_SET_FLAG(qctx, INIT_SEQ_QAT_CTX_INIT);
 
-    DEBUG_PPL("[%p] qat chained cipher ctx %p initialised\n",ctx, qctx);
     return 1;
 
  err:
@@ -774,7 +764,6 @@ int qat_chained_ciphers_init(EVP_CIPHER_CTX *ctx,
     QAT_MEM_FREE_BUFF(qctx->session_ctx, qctx->qat_svm);
 
     if ((qctx->fallback == 1) && (qctx->sw_ctx_cipher_data != NULL) && (ret == 1)) {
-        DEBUG("- Fallback to software mode.\n");
         CRYPTO_QAT_LOG("Resubmitting request to SW - %s\n", __func__);
         return ret; /* result returned from running software init function */
     }
@@ -877,9 +866,7 @@ int qat_chained_ciphers_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr)
 
             INIT_SEQ_SET_FLAG(qctx, INIT_SEQ_HMAC_KEY_SET);
 
-            DEBUG("inst_num = %d\n", qctx->inst_num);
             DUMP_SESSION_SETUP_DATA(ssd);
-            DEBUG("session_ctx = %p\n", qctx->session_ctx);
 
             if (!(is_instance_available(qctx->inst_num))) {
                 WARN("No QAT instance available so not creating session.\n");
@@ -1044,7 +1031,6 @@ sw_ctrl:
         retVal_sw = EVP_CIPHER_CTX_ctrl(swctx, type, arg, ptr);
 
         if ((qctx->fallback == 1) && (retVal_sw > 0)) {
-            DEBUG("- Switched to software mode.\n");
             CRYPTO_QAT_LOG("Resubmitting request to SW - %s\n", __func__);
             return retVal_sw;
         }
@@ -1058,7 +1044,6 @@ sw_ctrl:
     retVal_sw = EVP_CIPHER_meth_get_ctrl(GET_SW_CIPHER(ctx))(ctx, type, arg, ptr);
     EVP_CIPHER_CTX_set_cipher_data(ctx, qctx);
     if ((qctx->fallback == 1) && (retVal_sw > 0)) {
-        DEBUG("- Switched to software mode.\n");
         CRYPTO_QAT_LOG("Resubmitting request to SW - %s\n", __func__);
         return retVal_sw;
     }
@@ -1157,7 +1142,6 @@ int qat_chained_ciphers_cleanup(EVP_CIPHER_CTX *ctx)
     }
     qctx->fallback = 0;
     INIT_SEQ_CLEAR_ALL_FLAGS(qctx);
-    DEBUG_PPL("[%p] EVP CTX cleaned up\n", ctx);
 
 #ifdef ENABLE_QAT_FIPS
     qat_fips_key_zeroize = 1;
@@ -1284,7 +1268,6 @@ int qat_chained_ciphers_do_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
         in == NULL &&
         out != NULL &&
         enc) {
-        DEBUG("QAT partial requests work-around: NULL input buffer passed.\n");
         return 0;
     }
 
@@ -1300,9 +1283,7 @@ int qat_chained_ciphers_do_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
              */
             qctx->session_data->verifyDigest = CPA_FALSE;
         }
-        DEBUG("inst_num = %d\n", qctx->inst_num);
         DUMP_SESSION_SETUP_DATA(qctx->session_data);
-        DEBUG("session_ctx = %p\n", qctx->session_ctx);
 
         if (!(is_instance_available(qctx->inst_num))) {
             WARN("No QAT instance available so not initialising session.\n");
@@ -1787,7 +1768,6 @@ fallback:
             WARN("Pipelines are set when in s/w fallback mode, which is not supported.\n");
             return -1;
         } else {
-            DEBUG("- Switched to software mode.\n");
             CRYPTO_QAT_LOG("Resubmitting request to SW - %s\n", __func__);
 #ifdef QAT_OPENSSL_PROVIDER
             int sw_final_len = 0;
@@ -1871,7 +1851,6 @@ CpaStatus qat_sym_perform_op(int inst_num,
                                    pDstBuffer,
                                    pVerifyResult);
         if (status == CPA_STATUS_RETRY) {
-            DEBUG("cpaCySymPerformOp Retry.\n");
 #if defined(ENABLE_QAT_SW_SM4_CBC) && !defined(QAT_OPENSSL_PROVIDER)
             /* The request will switch to qat sw to process if a retry occurs. */
             if (qat_sm4_cbc_coexist) {

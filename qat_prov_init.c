@@ -169,7 +169,6 @@ QAT_PROV_PARAMS qat_params;
 
 static void qat_teardown(void *provctx)
 {
-    DEBUG("qatprovider teardown\n");
     qat_engine_finish_int(NULL, QAT_RESET_GLOBALS);
 
 #if defined(ENABLE_QAT_FIPS) && defined (ENABLE_QAT_SW_SHA2)
@@ -547,7 +546,6 @@ int qat_get_params_from_core(const OSSL_CORE_HANDLE *handle)
     }
 
     if (qat_params.enable_external_polling == NULL) {
-        DEBUG("get_params is NULL. Using the default params\n");
         return 1;
     }
 
@@ -587,7 +585,6 @@ int OSSL_provider_init(const OSSL_CORE_HANDLE *handle,
 {
     QAT_PROV_CTX *qat_ctx = NULL;
     BIO_METHOD *corebiometh = NULL;
-    QAT_DEBUG_LOG_INIT();
 
     if (!ossl_prov_bio_from_dispatch(in))
         return 0;

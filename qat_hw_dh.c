@@ -122,12 +122,10 @@ DH_METHOD *qat_get_DH_methods(void)
             return NULL;
         }
 
-        DEBUG("QAT HW DH registration succeeded\n");
         return qat_dh_method;
     }
 #endif
     def_dh_method = (DH_METHOD *)DH_get_default_method();
-    DEBUG("QAT HW DH is disabled, using OpensSSL SW\n");
     return def_dh_method;
 }
 
@@ -198,10 +196,8 @@ int qat_dh_generate_key(DH *dh)
     unsigned char *prime_buf = NULL;
     int prime_bytes = 0;
 # endif
-    DEBUG("QAT HW DH Started\n");
 
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode\n");
         return DH_meth_get_generate_key(sw_dh_method)(dh);
     }
 
@@ -258,7 +254,6 @@ int qat_dh_generate_key(DH *dh)
         /* check MSB and LSB of generated prime. */
         if (!(prime_buf[0] & 0x80) || !(prime_buf[prime_bytes - 1] & 0x01)) {
             OPENSSL_free(prime_buf);
-            DEBUG("Generating key through Software - Param p doesn't have MSB or LSB set.\n");
             return DH_meth_get_generate_key(sw_dh_method)(dh);
         }
         OPENSSL_free(prime_buf);
@@ -583,7 +578,6 @@ int qat_dh_compute_key(unsigned char *key, const BIGNUM *in_pub_key, DH *dh)
     unsigned char *prime_buf = NULL;
     int prime_bytes = 0;
 # endif
-    DEBUG("QAT HW DH Started\n");
 #ifdef ENABLE_QAT_FIPS
     qat_fips_get_approved_status();
 #endif
@@ -595,7 +589,6 @@ int qat_dh_compute_key(unsigned char *key, const BIGNUM *in_pub_key, DH *dh)
     }
 
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode\n");
         return DH_meth_get_compute_key(sw_dh_method)(key, in_pub_key, dh);
 
     }
@@ -653,7 +646,6 @@ int qat_dh_compute_key(unsigned char *key, const BIGNUM *in_pub_key, DH *dh)
         /* check MSB and LSB of generated prime. */
         if (!(prime_buf[0] & 0x80) || !(prime_buf[prime_bytes - 1] & 0x01)) {
             OPENSSL_free(prime_buf);
-            DEBUG("Run compute_key in Software - Param p doesn't have MSB or LSB set.\n");
             return DH_meth_get_compute_key(sw_dh_method)(key, in_pub_key, dh);;
         }
         OPENSSL_free(prime_buf);
@@ -932,10 +924,8 @@ int qat_dh_mod_exp(const DH *dh, BIGNUM *r, const BIGNUM *a,
     unsigned char *prime_buf = NULL;
     int prime_bytes = 0;
 # endif
-    DEBUG("- Started\n");
 
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode\n");
         return DH_meth_get_bn_mod_exp(sw_dh_method)(dh, r, a, p, m, ctx, m_ctx);
     }
 
@@ -950,7 +940,6 @@ int qat_dh_mod_exp(const DH *dh, BIGNUM *r, const BIGNUM *a,
         /* check MSB and LSB of generated prime. */
         if (!(prime_buf[0] & 0x80) || !(prime_buf[prime_bytes - 1] & 0x01)) {
             OPENSSL_free(prime_buf);
-            DEBUG("Run mod_exp operation in Software - Param p doesn't have MSB or LSB set.\n");
             return DH_meth_get_bn_mod_exp(sw_dh_method)(dh, r, a, p, m, ctx, m_ctx);
         }
         OPENSSL_free(prime_buf);

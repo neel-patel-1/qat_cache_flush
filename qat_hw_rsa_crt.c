@@ -347,7 +347,6 @@ int qat_rsa_decrypt_CRT(CpaCyRsaDecryptOpData * dec_op_data, int rsa_len,
     useconds_t ulPollInterval = getQatPollInterval();
     int ret = 0, rv = 0;
 
-    DEBUG("- Started\n");
 
     if (unlikely(rsa_len < 0)) { /* dec_op_data and output_buf are
                                   * already checked by calling function.
@@ -521,7 +520,6 @@ err:
     QAT_CLEANSE_MEMFREE_NONZERO_FLATBUFF(crt_op2_data.base, qat_svm);
     QAT_CLEANSE_MEMFREE_NONZERO_FLATBUFF(crt_out1, qat_svm);
     QAT_CLEANSE_MEMFREE_NONZERO_FLATBUFF(crt_out2, qat_svm);
-    DEBUG("- Finished\n");
     return ret;
 }
 #endif /* ENABLE_QAT_HW_RSA */

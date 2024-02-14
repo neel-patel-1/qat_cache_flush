@@ -167,7 +167,6 @@ static void *qat_tls_prf_new(void *provctx)
 static void qat_tls_prf_free(void *vctx)
 {
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode\n");
         fallback = 1;
         goto end;
     }
@@ -208,7 +207,6 @@ static int qat_tls_prf_derive(void *vctx, unsigned char *key, size_t keylen,
                                const OSSL_PARAM params[])
 {
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode\n");
         fallback = 1;
         goto end;
     }
@@ -408,7 +406,6 @@ static int qat_prov_macctx_load_from_params(EVP_MAC_CTX **macctx,
 static int qat_tls_prf_set_ctx_params(void *vctx, const OSSL_PARAM params[])
 {
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode\n");
         fallback = 1;
         goto end;
     }

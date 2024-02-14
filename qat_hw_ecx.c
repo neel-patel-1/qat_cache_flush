@@ -198,7 +198,6 @@ static int qat_pkey_ecx_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey, int type)
     QAT_GEN_CTX *gctx = ctx;
 # endif
 
-    DEBUG("QAT HW ECX Started\n");
     if (unlikely(ctx == NULL)) {
         WARN("ctx (type EVP_PKEY_CTX) is NULL.\n");
         QATerr(QAT_F_QAT_PKEY_ECX_KEYGEN, ERR_R_INTERNAL_ERROR);
@@ -231,13 +230,11 @@ static int qat_pkey_ecx_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey, int type)
     case EVP_PKEY_X25519:
         is_ecx_448 = 0;
         keylen = qat_keylen = X25519_KEYLEN;
-        DEBUG("EVP_PKEY_X25519\n");
         break;
     case EVP_PKEY_X448:
         is_ecx_448 = 1;
         keylen = X448_KEYLEN;
         qat_keylen = QAT_X448_DATALEN;
-        DEBUG("EVP_PKEY_X448\n");
         break;
     default:
         WARN("Unsupported NID: %d\n", type);
@@ -256,13 +253,11 @@ static int qat_pkey_ecx_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey, int type)
         is_ecx_448 = 0;
         keylen = key->keylen = X25519_KEYLEN;
         qat_keylen = X25519_KEYLEN;
-        DEBUG("EVP_PKEY_X25519\n");
         break;
     case ECX_KEY_TYPE_X448:
         is_ecx_448 = 1;
         keylen = key->keylen = X448_KEYLEN;
         qat_keylen = QAT_X448_DATALEN;
-        DEBUG("EVP_PKEY_X448\n");
         break;
     default:
         WARN("Unsupported NID: %d\n", gctx->type);
@@ -272,7 +267,6 @@ static int qat_pkey_ecx_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey, int type)
     }
 
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode.\n");
         OPENSSL_free(key);
 
         if (!is_ecx_448) {
@@ -398,7 +392,6 @@ static int qat_pkey_ecx_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey, int type)
         DUMP_EC_MONTEDWDS_POINT_MULTIPLY(qat_instance_handles[inst_num],
                                          qat_ecx_op_data, pXk, pYk);
 
-        DEBUG("Calling cpaCyEcMontEdwdsPointMultiply.\n");
         status = cpaCyEcMontEdwdsPointMultiply(qat_instance_handles[inst_num],
                                                qat_ecx_cb,
                                                &op_done,
@@ -409,7 +402,6 @@ static int qat_pkey_ecx_keygen(EVP_PKEY_CTX *ctx, EVP_PKEY *pkey, int type)
         if (status == CPA_STATUS_RETRY) {
             if (qat_ecx_coexist && !is_ecx_448) {
                 if (op_done.job) {
-                    DEBUG("cpaCyEcMontEdwdsPointMultiply Retry \n");
                     ++num_ecx_keygen_retry;
                     qat_sw_ecx_keygen_req += QAT_SW_SWITCH_MB8;
                     fallback = 1;
@@ -570,7 +562,6 @@ err:
 #else
 #ifdef ENABLE_QAT_SW_ECX
         if (qat_ecx_coexist && !is_ecx_448) {
-            DEBUG("- Switched to QAT_SW mode\n");
             if (qat_sw_ecx_keygen_req > 0)
                 --qat_sw_ecx_keygen_req;
             return multibuff_x25519_keygen(ctx, pkey);
@@ -690,7 +681,6 @@ int qat_pkey_ecx_derive25519(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *keyl
     int fallback = 0;
     int qat_svm = QAT_INSTANCE_ANY;
 
-    DEBUG("QAT HW ECX Started\n");
     START_RDTSC(&qat_hw_ecx_derive_req_prepare);
 
     if (unlikely(ctx == NULL)) {
@@ -701,7 +691,6 @@ int qat_pkey_ecx_derive25519(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *keyl
 
 #ifdef QAT_OPENSSL_PROVIDER
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode.\n");
         typedef int (*sw_prov_fun_ptr)(void *, unsigned char*, size_t*, size_t);
         sw_prov_fun_ptr sw_fun_ptr = get_default_x25519_keyexch().derive;
         return sw_fun_ptr(ctx, key, keylen, outlen);
@@ -834,7 +823,6 @@ int qat_pkey_ecx_derive25519(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *keyl
         DUMP_EC_MONTEDWDS_POINT_MULTIPLY(qat_instance_handles[inst_num],
                                          qat_ecx_op_data, pXk, pYk);
 
-        DEBUG("Calling cpaCyEcMontEdwdsPointMultiply.\n");
         status = cpaCyEcMontEdwdsPointMultiply(qat_instance_handles[inst_num],
                                                qat_ecx_cb,
                                                &op_done,
@@ -847,7 +835,6 @@ int qat_pkey_ecx_derive25519(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *keyl
             if (qat_ecx_coexist) {
                 if (op_done.job) {
                     START_RDTSC(&qat_hw_ecx_derive_req_retry);
-                    DEBUG("cpaCyEcMontEdwdsPointMultiply Retry \n");
                     ++num_ecx_derive_retry;
                     qat_sw_ecx_derive_req += QAT_SW_SWITCH_MB8;
                     fallback = 1;
@@ -999,7 +986,6 @@ err:
 #else
 #ifdef ENABLE_QAT_SW_ECX
         if (qat_ecx_coexist) {
-            DEBUG("- Switched to QAT_SW mode\n");
             if (qat_sw_ecx_derive_req > 0)
                 --qat_sw_ecx_derive_req;
             return multibuff_x25519_derive(ctx, key, keylen);
@@ -1040,7 +1026,6 @@ int qat_pkey_ecx_derive448(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *keylen
     int fallback = 0;
     int qat_svm = QAT_INSTANCE_ANY;
 
-    DEBUG("QAT HW ECX Started\n");
 
     if (unlikely(ctx == NULL)) {
         WARN("ctx (type EVP_PKEY_CTX) is NULL \n");
@@ -1049,7 +1034,6 @@ int qat_pkey_ecx_derive448(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *keylen
     }
 
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode.\n");
 #ifdef QAT_OPENSSL_PROVIDER
         typedef int (*sw_prov_fun_ptr)(void *, unsigned char*, size_t*, size_t);
         sw_prov_fun_ptr sw_fun_ptr = get_default_x448_keyexch().derive;
@@ -1186,7 +1170,6 @@ int qat_pkey_ecx_derive448(EVP_PKEY_CTX *ctx, unsigned char *key, size_t *keylen
         DUMP_EC_MONTEDWDS_POINT_MULTIPLY(qat_instance_handles[inst_num],
                                          qat_ecx_op_data, pXk, pYk);
 
-        DEBUG("Calling cpaCyEcMontEdwdsPointMultiply.\n");
         status = cpaCyEcMontEdwdsPointMultiply(qat_instance_handles[inst_num],
                                                qat_ecx_cb,
                                                &op_done,
@@ -1341,7 +1324,6 @@ err:
 # ifndef QAT_OPENSSL_PROVIDER
 int qat_pkey_ecx_ctrl(EVP_PKEY_CTX *ctx, int type, int p1, void *p2)
 {
-    DEBUG("Started\n");
 
     /* Only need to handle peer key for derivation */
     if (type == EVP_PKEY_CTRL_PEER_KEY)

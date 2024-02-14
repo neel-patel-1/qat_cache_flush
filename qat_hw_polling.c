@@ -145,7 +145,6 @@ void *qat_timer_poll_func(void *ih)
     struct timespec previous_time = { 0 };
     struct timespec hw_polling_abs_timeout;
 
-    DEBUG("timer_poll_func started\n");
     qat_timer_poll_func_thread = pthread_self();
     cleared_to_start = 1;
 
@@ -157,7 +156,6 @@ void *qat_timer_poll_func(void *ih)
         WARN("Failed to lock conditional wait mutex \n");
     }
 
-    DEBUG("qat_timer_poll_func_thread = 0x%lx\n", (unsigned long)qat_timer_poll_func_thread);
 
     if (qat_get_sw_fallback_enabled()) {
         clock_gettime(clock_id, &previous_time);
@@ -223,7 +221,6 @@ void *qat_timer_poll_func(void *ih)
                && (EINTR == errno));
     }
 
-    DEBUG("timer_poll_func finishing - pid = %d\n", getpid());
     qat_timer_poll_func_thread = 0;
     cleared_to_start = 0;
     pthread_cond_signal(&qat_poll_condition);

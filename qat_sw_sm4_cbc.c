@@ -118,7 +118,6 @@ static void process_mb_sm4_cbc_cipher_set_key(mbx_sm4_key_schedule *key_sched,
     int i;
 
     sm4_cbc_sts = mbx_sm4_set_key_mb16(key_sched, (const sm4_key**)mb_key);
-    DEBUG("QAT_SW SM4_CBC cipher set key, sm4_cbc_sts=%llu \n", sm4_cbc_sts);
 
     for (i = 0; i < req_num; i++) {
         if (MBX_GET_STS(sm4_cbc_sts, i) != MBX_STATUS_OK) {
@@ -157,18 +156,15 @@ void process_mb_sm4_cbc_cipher_enc_reqs(mb_thread_data *tlv)
             break;
     }
     local_request_no = req_num;
-    DEBUG("Submitting req_num %d SM4_CBC cipher requests\n", local_request_no);
 
     process_mb_sm4_cbc_cipher_set_key(&key_sched, mb_key, local_request_no);
     
     sm4_cbc_sts = mbx_sm4_encrypt_cbc_mb16(mb_out, mb_in, mb_in_len,
                                            &key_sched, mb_iv);
-    DEBUG("mbx_sm4_encrypt_cbc_mb16 sm4_cbc_sts=%llu \n", sm4_cbc_sts);
 
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (sm4_cbc_cipher_req_array[req_num]->sts != NULL) {
              if (MBX_GET_STS(sm4_cbc_sts, req_num) == MBX_STATUS_OK) {
-                 DEBUG("QAT_SW SM4_CBC cipher request[%d] success\n", req_num);
                        *sm4_cbc_cipher_req_array[req_num]->sts = 1;
              } else {
                  WARN("QAT_SW SM4_CBC cipher request[%d] failure\n", req_num);
@@ -187,7 +183,6 @@ void process_mb_sm4_cbc_cipher_enc_reqs(mb_thread_data *tlv)
     mb_sm4_cbc_cipher_req_rates.req_this_period += local_request_no;
 # endif
     STOP_RDTSC(&sm4_cbc_cycles_cipher_execute, 1, "[SM4_CBC:cipher_execute]");
-    DEBUG("Processed SM4_CBC cipher Request\n");
 }
 
 void process_mb_sm4_cbc_cipher_dec_reqs(mb_thread_data *tlv)
@@ -220,18 +215,15 @@ void process_mb_sm4_cbc_cipher_dec_reqs(mb_thread_data *tlv)
             break;
     }
     local_request_no = req_num;
-    DEBUG("Submitting req_num %d SM4_CBC cipher requests\n", local_request_no);
 
     process_mb_sm4_cbc_cipher_set_key(&key_sched, mb_key, local_request_no);
 
     sm4_cbc_sts = mbx_sm4_decrypt_cbc_mb16(mb_out, mb_in, mb_in_len,
                                            &key_sched, mb_iv);
-    DEBUG("mbx_sm4_decrypt_cbc_mb16 sts=%llu \n", sm4_cbc_sts);
 
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (sm4_cbc_cipher_req_array[req_num]->sts != NULL) {
              if (MBX_GET_STS(sm4_cbc_sts, req_num) == MBX_STATUS_OK) {
-                 DEBUG("QAT_SW SM4_CBC cipher request[%d] success\n", req_num);
                        *sm4_cbc_cipher_req_array[req_num]->sts = 1;
              } else {
                  WARN("QAT_SW SM4_CBC cipher request[%d] failure\n", req_num);
@@ -250,7 +242,6 @@ void process_mb_sm4_cbc_cipher_dec_reqs(mb_thread_data *tlv)
     mb_sm4_cbc_cipher_dec_req_rates.req_this_period += local_request_no;
 # endif
     STOP_RDTSC(&sm4_cbc_cycles_cipher_dec_execute, 1, "[SM4_CBC:cipher_dec_execute]");
-    DEBUG("Processed SM4_CBC cipher decryption Request\n");
 }
 
 #ifdef QAT_OPENSSL_PROVIDER
@@ -274,7 +265,6 @@ int qat_sw_sm4_cbc_key_init(EVP_CIPHER_CTX *ctx, const unsigned char *key,
     sm4cbc_coexistence_ctx *sm4cbc_hw_sw_ctx = NULL;
 #endif
 
-    DEBUG("started: ctx=%p key=%p iv=%p enc=%d\n", ctx, key, iv, enc);
 
     if (unlikely(ctx == NULL)) {
         WARN("ctx (type EVP_CIPHER_CTX) is NULL \n");
@@ -313,7 +303,6 @@ int qat_sw_sm4_cbc_key_init(EVP_CIPHER_CTX *ctx, const unsigned char *key,
     }
 
     if (iv) {
-        DEBUG("qat_sw_sm4_cbc_key_init: save iv=%p parameter for later use\n", iv);
         memmove(sm4_cbc_ctx->iv, iv, SM4_IV_LEN);
         sm4_cbc_ctx->iv_set = 1;
     }
@@ -396,7 +385,6 @@ int qat_sw_sm4_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     sm4cbc_coexistence_ctx *sm4cbc_hw_sw_ctx = NULL;
 #endif
 
-    DEBUG("Started: ctx=%p out=%p in=%p len=%lu\n", ctx, out, in, len);
 
     if (unlikely(ctx == NULL)) {
         WARN("ctx (type EVP_CIPHER_CTX) is NULL \n");
@@ -445,13 +433,11 @@ int qat_sw_sm4_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 
     /* Check if we are running asynchronously. If not use the SW method */
     if ((job = ASYNC_get_current_job()) == NULL) {
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
     }
 
     /* Setup asynchronous notifications */
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 
@@ -476,7 +462,6 @@ int qat_sw_sm4_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
         }
     }
 
-    DEBUG("QAT SW SM4_CBC cipher Started %p\n", sm4_cbc_cipher_req);
     START_RDTSC(&sm4_cbc_cycles_cipher_setup);
     /* Buffer up the requests and call the new functions when we have enough
        requests buffered up */
@@ -490,18 +475,15 @@ int qat_sw_sm4_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     sm4_cbc_cipher_req->in_out = out;
 
     if (in_enc) {
-        DEBUG("encryption enqueue \n");
         mb_queue_sm4_cbc_cipher_enqueue(tlv->sm4_cbc_cipher_queue, sm4_cbc_cipher_req);
     }
     else {
-        DEBUG("decryption enqueue \n");
         mb_queue_sm4_cbc_cipher_enqueue(tlv->sm4_cbc_cipher_dec_queue, sm4_cbc_cipher_req);
     }
 
     STOP_RDTSC(&sm4_cbc_cycles_cipher_setup, 1, "[SM4_CBC:cipher_setup]");
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_SM4_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -510,7 +492,6 @@ int qat_sw_sm4_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
         }
      }
 
-    DEBUG("Pausing: %p status = %d \n", sm4_cbc_cipher_req, sts);
     do {
         /* If we get a failure on qat_pause_job then we will
            not flag an error here and quit because we have
@@ -523,7 +504,6 @@ int qat_sw_sm4_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
         if ((job_ret = qat_pause_job(job, ASYNC_STATUS_OK)) == 0)
             sched_yield();
     } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
-    DEBUG("Finished: cipher %p status = %d\n", sm4_cbc_cipher_req, sts);
     num_sm4_cbc_sw_cipher_reqs++;
 #ifndef QAT_OPENSSL_PROVIDER
     return sts;
@@ -533,7 +513,6 @@ int qat_sw_sm4_cbc_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
 #endif
 
 use_sw_method:
-    DEBUG("SW method offload\n");
 #ifdef QAT_OPENSSL_PROVIDER
     sw_sm4_cbc_cipher = get_default_cipher_sm4_cbc();
     if (sw_sm4_cbc_cipher.cupdate == NULL)
@@ -548,7 +527,6 @@ use_sw_method:
        *outl = len;
        return 1;
     }
-    DEBUG("SW Offload Finished sts=%d\n", sts);
 #else
     sw_ctx_cipher_data = sm4_cbc_ctx->sw_ctx_cipher_data;
     if (!sw_ctx_cipher_data)
@@ -587,7 +565,6 @@ int qat_sw_sm4_cbc_cleanup(EVP_CIPHER_CTX *ctx)
     sm4cbc_coexistence_ctx *sm4cbc_hw_sw_ctx = NULL;
 #endif
 
-    DEBUG("Started: ctx=%p\n", ctx);
 
     if (unlikely(ctx == NULL)) {
         WARN("ctx (type EVP_CIPHER_CTX) is NULL \n");

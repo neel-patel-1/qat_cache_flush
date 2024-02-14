@@ -95,7 +95,6 @@ void mb_thread_local_destructor(void *tlv_ptr)
     if (tlv == NULL)
         return;
 
-    DEBUG("Thread local Destructor\n");
     tlv->keep_polling = 0;
 
     if (!enable_external_polling) {
@@ -223,7 +222,6 @@ mb_thread_data* mb_check_thread_local(void)
 
     tlv = OPENSSL_zalloc(sizeof(mb_thread_data));
     if (tlv != NULL) {
-        DEBUG("TLV NULL allocate memory and create polling thread\n");
         /* Create Multibuffer Freelists and Queues*/
 
 #ifdef ENABLE_QAT_SW_RSA
@@ -415,9 +413,6 @@ int qat_sw_init(ENGINE *e)
     int err = 0;
 
 	printf("QAT_SW initialization\n");
-    DEBUG("QAT_SW initialization\n");
-    DEBUG("- External polling: %s\n", enable_external_polling ? "ON": "OFF");
-    DEBUG("- Heuristic polling: %s\n", enable_heuristic_polling ? "ON": "OFF");
 
     INITIALISE_RDTSC_CLOCKS();
 
@@ -447,7 +442,6 @@ int qat_sw_finish_int(ENGINE *e, int reset_globals)
     int ret = 1;
     mb_thread_data *tlv;
 
-    DEBUG("---- QAT_SW Finishing...\n\n");
 
     if (e_check != NULL) {
         BN_free(e_check);

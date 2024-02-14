@@ -99,7 +99,6 @@ int qat_hw_kpt_init()
 
     for (inst_idx = 0; inst_idx < qat_num_instances; inst_idx++) {
         if (kpt_init(inst_idx, qat_instance_handles[inst_idx])) {
-            DEBUG("Instance %d Loads SWK Successfully\n", inst_idx);
             pass = 1;
         }
     }
@@ -192,7 +191,6 @@ static void kpt_sync_rsaCallbackFn(void *pCallbackTag, CpaStatus status,
         return;
     }
 
-    DEBUG("kpt_sync_rsaCallbackFn status %d\n", status);
 
     opDone->verifyResult = CPA_TRUE;
     opDone->status = status;
@@ -213,7 +211,6 @@ static int qat_hw_kpt_rsa_decrypt(CpaCyKptRsaDecryptOpData *dec_op_data,
     int job_ret = 0;
     thread_local_variables_t *tlv = NULL;
 
-    DEBUG("- Started\n");
 
     tlv = qat_check_create_local_variables();
     if (NULL == tlv) {
@@ -253,7 +250,6 @@ static int qat_hw_kpt_rsa_decrypt(CpaCyKptRsaDecryptOpData *dec_op_data,
     } else {
         /* Sync mode */
         CRYPTO_QAT_LOG("- RSA\n");
-        DEBUG("RSA Decryption in Sync Mode\n");
 
         /* Inline polling mode, need to quickly return then polling the ring */
         if (getEnableInlinePolling()) {
@@ -291,7 +287,6 @@ static int qat_hw_kpt_rsa_decrypt(CpaCyKptRsaDecryptOpData *dec_op_data,
         qat_cleanup_op_done(&op_done);
         QAT_DEC_IN_FLIGHT_REQS(num_requests_in_flight, tlv);
         tlv->kpt_wpk_in_use = KPT_INVALID_WPK_IDX;
-        DEBUG("- Finished\n");
         return 1;
     }
 
@@ -352,7 +347,6 @@ static int qat_hw_kpt_rsa_decrypt(CpaCyKptRsaDecryptOpData *dec_op_data,
 
     qat_cleanup_op_done(&op_done);
 
-    DEBUG("- Finished\n");
     return 1;
 }
 
@@ -372,10 +366,8 @@ int qat_hw_kpt_rsa_priv_enc(int flen, const unsigned char *from,
     CpaCyKptRsaDecryptOpData *kpt_dec_op_data = NULL;
     int kpt_wpk_idx = KPT_INVALID_WPK_IDX;
 
-    DEBUG("- Started.\n");
 
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("qat_get_qat_offload_disabled\n");
         return 0;
     }
 
@@ -427,7 +419,6 @@ int qat_hw_kpt_rsa_priv_enc(int flen, const unsigned char *from,
     }
 # endif
 
-    DEBUG("- Finished\n");
     return rsa_len;
 
  exit:
@@ -458,10 +449,8 @@ int qat_hw_kpt_rsa_priv_dec(int flen, const unsigned char *from,
     CpaCyKptRsaDecryptOpData *kpt_dec_op_data = NULL;
     int kpt_wpk_idx = KPT_INVALID_WPK_IDX;
 
-    DEBUG("- Started.\n");
 
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("qat_get_qat_offload_disabled\n");
         return 0;
     }
 
@@ -562,7 +551,6 @@ int qat_hw_kpt_rsa_priv_dec(int flen, const unsigned char *from,
 
     kpt_rsa_finish(kpt_dec_op_data, output_buffer, &kpt_wpk_idx);
 
-    DEBUG("- Finished\n");
     return output_len;
 
  exit:
@@ -623,10 +611,8 @@ ECDSA_SIG *qat_hw_kpt_ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
     thread_local_variables_t *tlv = NULL;
     int kpt_wpk_idx = KPT_INVALID_WPK_IDX;
 
-    DEBUG("- Started\n");
 
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- QAT offload is disabled\n");
         return NULL;
     }
 
@@ -773,7 +759,6 @@ ECDSA_SIG *qat_hw_kpt_ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
 
     kpt_ecdsa_finish(pResultR, pResultS, opData, ctx, &kpt_wpk_idx);
 
-    DEBUG("- Finished\n");
     return ret;
 }
 

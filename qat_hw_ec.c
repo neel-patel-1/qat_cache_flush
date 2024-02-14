@@ -172,7 +172,6 @@ int qat_ecdh_compute_key(unsigned char **outX, size_t *outlenX,
     ret = sm2_flag;
     int qat_svm = QAT_INSTANCE_ANY;
 
-    DEBUG("QAT HW ECDH Started\n");
 #ifdef ENABLE_QAT_FIPS
     qat_fips_get_approved_status();
 #endif
@@ -562,7 +561,6 @@ int qat_ecdh_compute_key(unsigned char **outX, size_t *outlenX,
                 (curve_name == NID_secp384r1))) {
                 START_RDTSC(&qat_hw_ecdh_derive_req_retry);
                 if (op_done.job) {
-                    DEBUG("cpaCyEcPointMultiply Retry \n");
                     if (outY) { /* key generation */
                         ++num_ecdh_keygen_retry;
                         qat_sw_ecdh_keygen_req += QAT_SW_SWITCH_MB8;
@@ -784,7 +782,6 @@ int qat_ecdh_compute_key(unsigned char **outX, size_t *outlenX,
     }
 
     STOP_RDTSC(&qat_hw_ecdh_derive_req_cleanup, 1, "[QAT HW ECDH: cleanup]");
-    DEBUG("- Finished\n");
     return ret;
 }
 
@@ -800,7 +797,6 @@ int qat_engine_ecdh_compute_key(unsigned char **out,
     int bitlen = 0;
 #endif
 
-    DEBUG("QAT HW ECDH Started\n");
 
     EC_KEY_METHOD_get_compute_key((EC_KEY_METHOD *)EC_KEY_OpenSSL(), &comp_key_pfunc);
     if (comp_key_pfunc == NULL) {
@@ -830,7 +826,6 @@ int qat_engine_ecdh_compute_key(unsigned char **out,
     /* Bits < 256 is not supported in QAT_HW */
     bitlen = EC_GROUP_order_bits(group);
     if (bitlen < QAT_EC_MIN_RANGE) {
-        DEBUG("Curve-Bitlen %d not supported! Using OPENSSL_SW\n", bitlen);
         fallback = 1;
         goto exit;
     }
@@ -846,7 +841,6 @@ exit:
         if (qat_ecdh_coexist && 
             ((curve_name == NID_X9_62_prime256v1) || 
              (curve_name == NID_secp384r1))) {
-            DEBUG("- Switched to QAT_SW mode\n");
             if (qat_sw_ecdh_derive_req > 0)
                 --qat_sw_ecdh_derive_req;
             return mb_ecdh_compute_key(out, outlen, pub_key, ecdh);
@@ -855,7 +849,6 @@ exit:
         WARN("- Fallback to software mode.\n");
         return (*comp_key_pfunc)(out, outlen, pub_key, ecdh);
     }
-    DEBUG("- Finished\n");
     return ret;
 }
 
@@ -879,7 +872,6 @@ int qat_ecdh_generate_key(EC_KEY *ecdh)
     int bitlen = 0;
 #endif
 
-    DEBUG("QAT HW ECDH Started\n");
 
     EC_KEY_METHOD_get_keygen((EC_KEY_METHOD *) EC_KEY_OpenSSL(), &gen_key_pfunc);
     if (gen_key_pfunc == NULL) {
@@ -903,7 +895,6 @@ int qat_ecdh_generate_key(EC_KEY *ecdh)
     /* Bits < 256 is not supported in QAT_HW */
     bitlen = EC_GROUP_order_bits(group);
     if (bitlen < QAT_EC_MIN_RANGE) {
-        DEBUG("Curve-Bitlen %d not supported! Using OPENSSL_SW\n", bitlen);
         fallback = 1;
         goto exit;
     }
@@ -1042,7 +1033,6 @@ int qat_ecdh_generate_key(EC_KEY *ecdh)
     if (temp_ybuf != NULL)
         OPENSSL_free(temp_ybuf);
 
-    DEBUG("- Finished\n");
 
 exit:
     if (fallback == 1) {
@@ -1051,13 +1041,11 @@ exit:
         if (qat_ecdh_coexist && 
             ((curve_name == NID_X9_62_prime256v1) || 
              (curve_name == NID_secp384r1))) {
-            DEBUG("- Switched to QAT_SW mode\n");
             if (qat_sw_ecdh_keygen_req > 0)
                 --qat_sw_ecdh_keygen_req;
             return mb_ecdh_generate_key(ecdh);
         }
 #endif
-        DEBUG("- Switched to software mode\n");
         return (*gen_key_pfunc)(ecdh);
     }
     return ok;
@@ -1323,7 +1311,6 @@ ECDSA_SIG *qat_ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
 #ifdef ENABLE_QAT_HW_KPT
     if (eckey && qat_check_ec_wpk(eckey)) {
         if (is_kpt_mode()) {
-            DEBUG("Run the qat_ecdsa_do_sign in KPT mode.\n");
             return
                 qat_hw_kpt_ecdsa_do_sign(dgst, dgst_len, in_kinv, in_r, eckey);
         }
@@ -1334,7 +1321,6 @@ ECDSA_SIG *qat_ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
     }
 #endif
 
-    DEBUG("QAT HW ECDSA Started\n");
 #ifdef ENABLE_QAT_FIPS
     qat_fips_get_approved_status();
 #endif
@@ -1381,7 +1367,6 @@ ECDSA_SIG *qat_ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
     /* Bits < 256 is not supported in QAT_HW */
     bitlen = EC_GROUP_order_bits(group);
     if (bitlen < QAT_EC_MIN_RANGE) {
-        DEBUG("Curve-Bitlen %d not supported! Using OPENSSL_SW\n", bitlen);
         return (*sign_sig_pfunc)(dgst, dgst_len, in_kinv, in_r, eckey);
     }
 #endif
@@ -1691,7 +1676,6 @@ ECDSA_SIG *qat_ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
                                 opData,
                                 &bEcdsaSignStatus, pResultR, pResultS);
         } else {
-            DEBUG("Running sync mode for ECDSA request\n");
             status = cpaCyEcdsaSignRS(qat_instance_handles[inst_num],
                                     qat_ecdsaSignCallbackFn,
                                     &op_done,
@@ -1701,7 +1685,6 @@ ECDSA_SIG *qat_ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
 #endif /* QAT_BORINGSSL */
         STOP_RDTSC(&qat_hw_ecdsa_sign_req_submit, 1, "[QAT HW ECDSA: submit]");
         if (status == CPA_STATUS_RETRY) {
-            DEBUG("cpaCyEcdsaSignRS Retry \n");
             if (qat_ecdsa_coexist && (curve_name == NID_secp384r1)) {
                 START_RDTSC(&qat_hw_ecdsa_sign_req_retry);
                 ++num_ecdsa_sign_retry;
@@ -1898,14 +1881,12 @@ ECDSA_SIG *qat_ecdsa_do_sign(const unsigned char *dgst, int dgst_len,
     if (fallback) {
         CRYPTO_QAT_LOG("Resubmitting request to SW - %s\n", __func__);
         if (qat_ecdsa_coexist) {
-            DEBUG("- Switch to QAT_SW mode.\n");
             return NULL;
         } else {
             WARN("- Fallback to software mode.\n");
             return (*sign_sig_pfunc)(dgst, dgst_len, in_kinv, in_r, eckey);
         }
     }
-    DEBUG("- Finished\n");
     return ret;
 }
 
@@ -1979,7 +1960,6 @@ int qat_ecdsa_do_verify(const unsigned char *dgst, int dgst_len,
     int bitlen = 0;
 #endif
 
-    DEBUG("QAT HW ECDSA Started\n");
 #ifdef ENABLE_QAT_FIPS
     qat_fips_get_approved_status();
 #endif
@@ -1998,7 +1978,6 @@ int qat_ecdsa_do_verify(const unsigned char *dgst, int dgst_len,
     }
 
     if (qat_get_qat_offload_disabled()) {
-        DEBUG("- Switched to software mode\n");
         return (*verify_sig_pfunc)(dgst, dgst_len, sig, eckey);
     }
 
@@ -2014,7 +1993,6 @@ int qat_ecdsa_do_verify(const unsigned char *dgst, int dgst_len,
     /* Bits < 256 is not supported in QAT_HW */
     bitlen = EC_GROUP_order_bits(group);
     if (bitlen < QAT_EC_MIN_RANGE) {
-        DEBUG("Curve-Bitlen %d not supported! Using OPENSSL_SW\n", bitlen);
         return (*verify_sig_pfunc)(dgst, dgst_len, sig, eckey);
     }
 #endif
@@ -2300,7 +2278,6 @@ int qat_ecdsa_do_verify(const unsigned char *dgst, int dgst_len,
     while (!op_done.flag ||
            QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
-    DEBUG("bEcdsaVerifyStatus = %u\n", bEcdsaVerifyStatus);
     QAT_DEC_IN_FLIGHT_REQS(num_requests_in_flight, tlv);
 
     if (op_done.verifyResult == CPA_TRUE)
@@ -2341,7 +2318,6 @@ int qat_ecdsa_do_verify(const unsigned char *dgst, int dgst_len,
         CRYPTO_QAT_LOG("Resubmitting request to SW - %s\n", __func__);
         return (*verify_sig_pfunc)(dgst, dgst_len, sig, eckey);
     }
-    DEBUG("- Finished\n");
     return ret;
 }
 
@@ -2352,7 +2328,6 @@ int qat_ecdsa_sign_bssl(const uint8_t *digest, size_t digest_len, uint8_t *sig,
                         unsigned int *sig_len, EC_KEY *eckey) {
 
   int ret = 0;
-  DEBUG("Start qat_ecdsa_sign_bssl\n");
   ASYNC_JOB* current_job = (ASYNC_JOB*)ASYNC_get_current_job();
   ECDSA_SIG *s = qat_ecdsa_do_sign(digest, digest_len, NULL, NULL, eckey);
 

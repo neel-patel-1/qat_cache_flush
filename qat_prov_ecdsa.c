@@ -446,13 +446,11 @@ static int qat_signature_ecdsa_signverify_init(void *vctx, void *ec,
 
 static int qat_signature_ecdsa_sign_init(void *vctx, void *ec, const OSSL_PARAM params[])
 {
-    DEBUG("qat_signature_ecdsa_sign_init\n");
     return qat_signature_ecdsa_signverify_init(vctx, ec, params, EVP_PKEY_OP_SIGN);
 }
 
 static int qat_signature_ecdsa_verify_init(void *vctx, void *ec, const OSSL_PARAM params[])
 {
-    DEBUG("qat_signature_ecdsa_verify_init\n");
     return qat_signature_ecdsa_signverify_init(vctx, ec, params, EVP_PKEY_OP_VERIFY);
 }
 

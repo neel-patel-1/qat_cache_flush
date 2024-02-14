@@ -389,7 +389,6 @@ static qae_slab *crypto_create_slab(int size, int pool_index)
         goto exit;
     }
 
-    MEM_DEBUG("Splitting slab into slot size %d\n", size);
     slb->slot_size = size;
     slb->next_slot = NULL;
     slb->sig = SIG_ALLOC;
@@ -498,7 +497,6 @@ static void *crypto_alloc_from_slab(int size, const char *file, int line)
     if (available_slab_list[i].pid != getpid())
         crypto_init();
 
-    MEM_DEBUG("pthread_mutex_lock\n");
     if ((rc = pthread_mutex_lock(&crypto_bsal)) != 0) {
         MEM_WARN("pthread_mutex_lock: %s\n", strerror(rc));
         return result;
@@ -515,7 +513,6 @@ static void *crypto_alloc_from_slab(int size, const char *file, int line)
             if ((rc = pthread_mutex_unlock(&crypto_bsal)) != 0) {
                 MEM_WARN("pthread_mutex_unlock: %s\n", strerror(rc));
             }
-            MEM_DEBUG("pthread_mutex_unlock\n");
             goto exit;
         }
         /*allocate a new slab, add it into the available slab list*/
@@ -552,7 +549,6 @@ static void *crypto_alloc_from_slab(int size, const char *file, int line)
     if ((rc = pthread_mutex_unlock(&crypto_bsal)) != 0) {
         MEM_WARN("pthread_mutex_unlock: %s\n", strerror(rc));
     }
-    MEM_DEBUG("pthread_mutex_unlock\n");
 
  exit:
     return result;
@@ -572,14 +568,12 @@ static void crypto_free_slab(qae_slab *slb)
 {
     qat_contig_mem_config qmcfg;
 
-    MEM_DEBUG("do munmap  of %p\n", slb);
     qmcfg = *((qat_contig_mem_config *) slb);
 
     if (qat_munmap(slb, SLAB_SIZE) == -1) {
         perror("munmap");
         exit(EXIT_FAILURE);
     }
-    MEM_DEBUG("ioctl free of %p\n", slb);
     if (qat_ioctl(crypto_qat_contig_memfd, QAT_CONTIG_MEM_FREE, &qmcfg) == -1) {
         perror("ioctl QAT_CONTIG_MEM_FREE");
         exit(EXIT_FAILURE);
@@ -608,7 +602,6 @@ static void crypto_free_to_slab(void *ptr)
     int i = slt->pool_index;
     int rc;
 
-    MEM_DEBUG("pthread_mutex_lock\n");
     if ((rc = pthread_mutex_lock(&crypto_bsal)) != 0) {
         MEM_WARN("pthread_mutex_lock: %s\n", strerror(rc));
         return;
@@ -670,7 +663,6 @@ static void crypto_free_to_slab(void *ptr)
     if ((rc = pthread_mutex_unlock(&crypto_bsal)) != 0) {
         MEM_WARN("pthread_mutex_unlock: %s\n", strerror(rc));
     }
-    MEM_DEBUG("pthread_mutex_unlock\n");
 }
 
 /*****************************************************************************
@@ -719,8 +711,6 @@ void fork_slab_list(qae_slab_pool * list)
         MEM_WARN("pthread_mutex_lock: %s\n", strerror(rc));
         return;
     }
-    MEM_DEBUG("fork_slab_list.\n");
-    MEM_DEBUG("pthread_mutex_lock\n");
     qae_slab *old_slb = list->next;
     qae_slab *new_slb = NULL;
     qat_contig_mem_config qmcfg =
@@ -769,7 +759,6 @@ void fork_slab_list(qae_slab_pool * list)
     if ((rc = pthread_mutex_unlock(&crypto_bsal)) != 0) {
         MEM_WARN("pthread_mutex_unlock: %s\n", strerror(rc));
     }
-    MEM_DEBUG("pthread_mutex_unlock\n");
 }
 
 /*****************************************************************************
@@ -787,7 +776,6 @@ static void crypto_free_slab_list(qae_slab_pool *list)
     int rc;
     qat_contig_mem_config qmcfg;
 
-    MEM_DEBUG("pthread_mutex_lock\n");
     if ((rc = pthread_mutex_lock(&crypto_bsal)) != 0) {
         MEM_WARN("pthread_mutex_lock: %s\n", strerror(rc));
         return;
@@ -798,14 +786,12 @@ static void crypto_free_slab_list(qae_slab_pool *list)
         /* need to save this off before unmapping. This is why we can't have
            slb = slb->next_slab in the for loop above. */
         s_next_slab = slb->next;
-        MEM_DEBUG("do munmap of %p\n", slb);
         qmcfg = *((qat_contig_mem_config *) slb);
 
         if (qat_munmap(slb, SLAB_SIZE) == -1) {
             perror("munmap");
             exit(EXIT_FAILURE);
         }
-        MEM_DEBUG("ioctl free of %p\n", slb);
         if (qat_ioctl(crypto_qat_contig_memfd, QAT_CONTIG_MEM_FREE, &qmcfg)
             == -1) {
             perror("ioctl QAT_CONTIG_MEM_FREE");
@@ -814,12 +800,10 @@ static void crypto_free_slab_list(qae_slab_pool *list)
         list->slot_size--;
     }
 
-    MEM_DEBUG("done\n");
 
     if ((rc = pthread_mutex_unlock(&crypto_bsal)) != 0) {
         MEM_WARN("pthread_mutex_unlock: %s\n", strerror(rc));
     }
-    MEM_DEBUG("pthread_mutex_unlock\n");
 }
 
 /*****************************************************************************
@@ -852,20 +836,15 @@ void slab_list_stat(qae_slab_pool * list)
     qae_slab *slb;
     int index;
     if(0 == list->slot_size) {
-        MEM_DEBUG("The list is empty.\n");
         return;
     }
     for (slb = list->next, index = 0; index < list->slot_size;
          slb = slb->next) {
-        MEM_DEBUG("Slab index        : %d\n",index);
         index++;
         MEM_DEBUG("Slab virtual addr : %p\n",
                 (void *)slb->memCfg.virtualAddress);
         MEM_DEBUG("Slab physical addr: %p\n",
                 (void *)slb->memCfg.physicalAddress);
-        MEM_DEBUG("Slab slot size    : %d\n",slb->slot_size);
-        MEM_DEBUG("Slab used slots   : %d\n",slb->used_slots);
-        MEM_DEBUG("Slab total slots  : %d\n",slb->total_slots);
     }
     return;
 }
@@ -886,11 +865,9 @@ void crypto_cleanup_slabs(void)
     int i;
     /* stat of available slab list*/
     for(i = 0;  i < NUM_SLOT_SIZE; i++) {
-        MEM_DEBUG("available_slab_list[%d]:\n",i);
         slab_list_stat(&available_slab_list[i]);
     }
     /*stat of full slab list*/
-    MEM_DEBUG("full_slab_list:\n");
     slab_list_stat(&full_slab_list);
 #endif
 }
@@ -908,7 +885,6 @@ static void crypto_init(void)
     int i = 0;
 
     MEM_WARN("Memory Driver Warnings Enabled.\n");
-    MEM_DEBUG("Memory Driver Debug Enabled.\n");
     for(i = 0 ; i < NUM_SLOT_SIZE ; i++) {
         init_pool(&available_slab_list[i]);
         init_pool(&empty_slab_list[i]);
@@ -932,7 +908,6 @@ static void crypto_init(void)
  *****************************************************************************/
 void qaeCryptoAtFork()
 {
-    MEM_DEBUG("qaeCryptoAtFork.\n");
     int i;
     fork_slab_list(&full_slab_list);
     for(i = 0;i < NUM_SLOT_SIZE; i++) {
@@ -1017,7 +992,6 @@ void *qaeCryptoMemAlloc(size_t memsize, const char *file, int line)
 ******************************************************************************/
 void qaeCryptoMemFree(void *ptr)
 {
-    MEM_DEBUG("Address: %p\n", ptr);
     {
         if (NULL != ptr)
             crypto_free_to_slab(ptr);
@@ -1081,7 +1055,6 @@ void *qaeCryptoMemRealloc(void *ptr, size_t memsize, const char *file,
     if (memsize < copy)
         copy = memsize;
     memcpy(n, ptr, copy);
-    MEM_DEBUG("Free Address: %p\n", ptr);
     crypto_free_to_slab(ptr);
     return n;
 }
@@ -1134,7 +1107,6 @@ void *qaeCryptoMemReallocClean(void *ptr, size_t memsize,
     if (memsize < copy)
         copy = memsize;
     memcpy(n, ptr, copy);
-    MEM_DEBUG("Free Address: %p\n", ptr);
     crypto_free_to_slab(ptr);
     return n;
 }

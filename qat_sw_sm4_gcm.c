@@ -144,7 +144,6 @@ void process_mb_sm4_gcm_decrypt_reqs(mb_thread_data *tlv)
             break;
     }
     local_request_no = req_num;
-    DEBUG("Submitting req_num %d SM4_GCM decrypt requests\n", local_request_no);
 
     mbx_sm4_gcm_init_mb16(sm4_data_key,
                         sm4_data_iv, sm4_data_ivlen, &sm4_gcm_ctx);
@@ -158,7 +157,6 @@ void process_mb_sm4_gcm_decrypt_reqs(mb_thread_data *tlv)
 
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (MBX_GET_STS(sm4_gcm_sts, req_num) == MBX_STATUS_OK) {
-            DEBUG("QAT_SW SM4_GCM decrypt request[%d] success\n", req_num);
             *sm4_gcm_decrypt_req_array[req_num]->sts = 1;
         } else {
             WARN("QAT_SW SM4 GCM decrypt request[%d] failure\n", req_num);
@@ -176,7 +174,6 @@ void process_mb_sm4_gcm_decrypt_reqs(mb_thread_data *tlv)
     mb_sm4_gcm_decrypt_req_rates.req_this_period += local_request_no;
 #  endif
     STOP_RDTSC(&sm4_gcm_cycles_decrypt_execute, 1, "[SM4_GCM:decrypt_execute]");
-    DEBUG("Processed SM4_GCM decrypt Request\n");
 }
 
 void process_mb_sm4_gcm_encrypt_reqs(mb_thread_data *tlv)
@@ -222,7 +219,6 @@ void process_mb_sm4_gcm_encrypt_reqs(mb_thread_data *tlv)
             break;
     }
     local_request_no = req_num;
-    DEBUG("Submitting req_num %d SM4_GCM encrypt requests\n", local_request_no);
 
     mbx_sm4_gcm_init_mb16(sm4_data_key,
                         sm4_data_iv, sm4_data_ivlen, &sm4_gcm_ctx);
@@ -236,7 +232,6 @@ void process_mb_sm4_gcm_encrypt_reqs(mb_thread_data *tlv)
 
     for (req_num = 0; req_num < local_request_no; req_num++) {
         if (MBX_GET_STS(sm4_gcm_sts, req_num) == MBX_STATUS_OK) {
-            DEBUG("QAT_SW SM4_GCM encrypt request[%d] success\n", req_num);
             *sm4_gcm_encrypt_req_array[req_num]->sts = 1;
         } else {
             WARN("QAT_SW SM4 GCM encrypt request[%d] failure\n", req_num);
@@ -254,7 +249,6 @@ void process_mb_sm4_gcm_encrypt_reqs(mb_thread_data *tlv)
     mb_sm4_gcm_encrypt_req_rates.req_this_period += local_request_no;
 #  endif
     STOP_RDTSC(&sm4_gcm_cycles_encrypt_execute, 1, "[SM4_GCM:encrypt_execute]");
-    DEBUG("Processed SM4_GCM encrypt Request\n");
 }
 
 #ifdef QAT_OPENSSL_PROVIDER
@@ -275,7 +269,6 @@ int qat_sw_sm4_gcm_init(EVP_CIPHER_CTX *ctx, const unsigned char *key,
 #endif
     int sts = 0;
 
-    DEBUG("started: ctx=%p key=%p iv=%p enc=%d\n", ctx, key, iv, enc);
 
     if (unlikely(ctx == NULL)) {
         WARN("ctx (type EVP_CIPHER_CTX) is NULL \n");
@@ -335,7 +328,6 @@ int qat_sw_sm4_gcm_init(EVP_CIPHER_CTX *ctx, const unsigned char *key,
      *  it would have been set via ctrl function before we got here) */
     if (qctx->iv_len <=0) {
         qctx->iv_len = QAT_SM4_TLS_TOTAL_IV_LEN;
-        DEBUG("Setting IV length = %d\n", qctx->iv_len);
     }
 
     /* If we have an IV passed in and have yet to allocate memory for the IV */
@@ -441,7 +433,6 @@ int qat_sw_sm4_gcm_cleanup(EVP_CIPHER_CTX *ctx)
 #endif
     int sts = 0;
 
-    DEBUG("qat_sw_sm4_gcm_cleanup started: ctx=%p\n", ctx);
 
     if (unlikely(ctx == NULL)) {
         WARN("ctx (type EVP_CIPHER_CTX) is NULL \n");
@@ -454,7 +445,6 @@ int qat_sw_sm4_gcm_cleanup(EVP_CIPHER_CTX *ctx)
 #endif
     if (qctx) {
         if (qctx->iv != NULL) {
-            DEBUG("qctx->iv_len = %d\n", qctx->iv_len);
             OPENSSL_free(qctx->iv);
             qctx->iv     = NULL;
             qctx->iv_len = 0;
@@ -473,14 +463,12 @@ int qat_sw_sm4_gcm_cleanup(EVP_CIPHER_CTX *ctx)
         }
 
         if (qctx->tls_aad != NULL) {
-            DEBUG("qctx->tls_aad_len = %d\n", qctx->tls_aad_len);
             OPENSSL_free(qctx->tls_aad);
             qctx->tls_aad     = NULL;
             qctx->tls_aad_len = -1;
             qctx->tls_aad_set = 0;
         }
         if (qctx->tag != NULL) {
-            DEBUG("qctx->tag_len = %d\n", qctx->tag_len);
             OPENSSL_free(qctx->tag);
             qctx->tag     = NULL;
             qctx->tag_len = 0;
@@ -674,7 +662,6 @@ int qat_sw_sm4_gcm_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr)
         }
         /* Special case: -1 length restores whole IV */
         if (arg == -1) {
-            DEBUG("Special case - Restoring IV, arg = %d\n", arg);
             memcpy(qctx->next_iv, ptr, qctx->iv_len);
             qctx->iv_gen = 1;
             ret_val      = 1;
@@ -854,7 +841,6 @@ int qat_sw_sm4_gcm_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr)
         DEBUG("CTRL Type = EVP_CTRL_GET_IVLEN, ctx = %p, type = %d,"
               " arg = %d, ptr = %p\n", (void*)ctx, type, arg, ptr);
 
-        DEBUG("EVP_CTRL_GET_IVLEN qctx->iv_len %d\n",qctx->iv_len);
         *(int*)ptr = qctx->iv_len;
         ret_val    = 1;
         break;
@@ -896,7 +882,6 @@ static int qat_sw_sm4_gcm_decrypt(EVP_CIPHER_CTX *ctx, unsigned char *out,
     static __thread int req_num = 0;
     int init_flag = 0;
 
-    DEBUG("started: ctx=%p out=%p in=%p len=%lu\n", ctx, out, in, len);
 
     if (unlikely(ctx == NULL)) {
         WARN("ctx (type EVP_CIPHER_CTX) is NULL \n");
@@ -916,13 +901,11 @@ static int qat_sw_sm4_gcm_decrypt(EVP_CIPHER_CTX *ctx, unsigned char *out,
 
     /* Check if we are running asynchronously. If not use the SW method */
     if ((job = ASYNC_get_current_job()) == NULL) {
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
     }
 
     /* Setup asynchronous notifications */
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 
@@ -938,7 +921,6 @@ static int qat_sw_sm4_gcm_decrypt(EVP_CIPHER_CTX *ctx, unsigned char *out,
         qat_pause_job(job, ASYNC_STATUS_EAGAIN);
     }
 
-    DEBUG("QAT SW SM4_GCM cipher_decrypt Started %p", sm4_gcm_decrypt_req);
     START_RDTSC(&sm4_gcm_cycles_decrypt_setup);
     /* Buffer up the requests and call the new functions when we have enough
        requests buffered up */
@@ -966,7 +948,6 @@ static int qat_sw_sm4_gcm_decrypt(EVP_CIPHER_CTX *ctx, unsigned char *out,
     STOP_RDTSC(&sm4_gcm_cycles_decrypt_setup, 1, "[SM4_GCM:decrypt_setup]");
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_SM4_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -990,7 +971,6 @@ static int qat_sw_sm4_gcm_decrypt(EVP_CIPHER_CTX *ctx, unsigned char *out,
             sched_yield();
         }
     } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
-    DEBUG("Finished: Decrypt %p status = %d\n", sm4_gcm_decrypt_req, sts);
     qctx->init_flag = 1;
 
     if (sts) {
@@ -1011,7 +991,6 @@ use_sw_method:
     sts = EVP_CIPHER_meth_get_do_cipher(EVP_sm4_gcm())(ctx, out, in, len);
 
     EVP_CIPHER_CTX_set_cipher_data(ctx, qctx);
-    DEBUG("SW Decryption Finished sts=%d\n", sts);
 #else
     sw_sm4_gcm_cipher = get_default_cipher_sm4_gcm();
 
@@ -1049,7 +1028,6 @@ static int qat_sw_sm4_gcm_encrypt(EVP_CIPHER_CTX *ctx, unsigned char *out,
     static __thread int req_num = 0;
     int init_flag = 0;
 
-    DEBUG("started: ctx=%p out=%p in=%p len=%lu\n", ctx, out, in, len);
 
     if (unlikely(ctx == NULL)) {
         WARN("ctx (type EVP_CIPHER_CTX) is NULL \n");
@@ -1069,13 +1047,11 @@ static int qat_sw_sm4_gcm_encrypt(EVP_CIPHER_CTX *ctx, unsigned char *out,
 
     /* Check if we are running asynchronously. If not use the SW method */
     if ((job = ASYNC_get_current_job()) == NULL) {
-        DEBUG("Running synchronously using sw method\n");
         goto use_sw_method;
     }
 
     /* Setup asynchronous notifications */
     if (!qat_setup_async_event_notification(job)) {
-        DEBUG("Failed to setup async notifications, using sw method\n");
         goto use_sw_method;
     }
 
@@ -1091,7 +1067,6 @@ static int qat_sw_sm4_gcm_encrypt(EVP_CIPHER_CTX *ctx, unsigned char *out,
         qat_pause_job(job, ASYNC_STATUS_EAGAIN);
     }
 
-    DEBUG("QAT SW SM4_GCM encrypt Started %p\n", sm4_gcm_encrypt_req);
     START_RDTSC(&sm4_gcm_cycles_encrypt_setup);
     /* Buffer up the requests and call the new functions when we have enough
        requests buffered up */
@@ -1119,7 +1094,6 @@ static int qat_sw_sm4_gcm_encrypt(EVP_CIPHER_CTX *ctx, unsigned char *out,
     STOP_RDTSC(&sm4_gcm_cycles_encrypt_setup, 1, "[SM4_GCM:encrypt_setup]");
 
     if (!enable_external_polling && (++req_num % MULTIBUFF_SM4_MAX_BATCH) == 0) {
-        DEBUG("Signal Polling thread, req_num %d\n", req_num);
         if (sem_post(&tlv->mb_polling_thread_sem) != 0) {
             WARN("hw sem_post failed!, mb_polling_thread_sem address: %p.\n",
                   &tlv->mb_polling_thread_sem);
@@ -1145,7 +1119,6 @@ static int qat_sw_sm4_gcm_encrypt(EVP_CIPHER_CTX *ctx, unsigned char *out,
     } while (QAT_CHK_JOB_RESUMED_UNEXPECTEDLY(job_ret));
 
     qctx->init_flag = 1;
-    DEBUG("Finished: Encrypt %p status = %d\n", sm4_gcm_encrypt_req, sts);
     if (sts) {
        return sts;
     } else {
@@ -1164,7 +1137,6 @@ use_sw_method:
     sts = EVP_CIPHER_meth_get_do_cipher(EVP_sm4_gcm())(ctx, out, in, len);
 
     EVP_CIPHER_CTX_set_cipher_data(ctx, qctx);
-    DEBUG("SW Encryption Finished sts=%d\n", sts);
 #else
     sw_sm4_gcm_cipher = get_default_cipher_sm4_gcm();
     if (sw_sm4_gcm_cipher.cupdate == NULL)
@@ -1303,7 +1275,6 @@ int qat_sw_sm4_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     int sts = 0;
     int enc = 0;
 
-    DEBUG("started: ctx=%p out=%p in=%p len=%lu\n", ctx, out, in, len);
 
     if (unlikely(ctx == NULL)) {
         WARN("ctx (type EVP_CIPHER_CTX) is NULL \n");
@@ -1329,7 +1300,6 @@ int qat_sw_sm4_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
         goto use_sw_method;
 
     if (ASYNC_get_current_job() == NULL) {
-        DEBUG("SW Cipher Offload Started\n");
         goto use_sw_method;
     }
 
@@ -1343,7 +1313,6 @@ int qat_sw_sm4_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
     if ((out == NULL) && (in != NULL)) {
         qctx->tls_aad = OPENSSL_zalloc(len);
         if (qctx->tls_aad == NULL) {
-            DEBUG("Failed to allocate qctx->aad\n");
             QATerr(QAT_F_QAT_SW_SM4_GCM_CIPHER, QAT_R_MALLOC_FAILURE);
             return sts;
         }
@@ -1369,7 +1338,6 @@ int qat_sw_sm4_gcm_cipher(EVP_CIPHER_CTX *ctx, unsigned char *out,
             qctx->tag_calculated = 1;
 
             if (qctx->tag_set) {
-                DEBUG("Decrypt - GCM Tag Set so calling memcmp\n");
                 if (memcmp(qctx->calculated_tag, qctx->tag, qctx->tag_len) == 0)
 #ifdef QAT_OPENSSL_PROVIDER
                     sts = len;
@@ -1444,7 +1412,6 @@ use_sw_method:
        *padlen = len;
        return 1;
     }
-    DEBUG("SW Offload Finished sts=%d\n", sts);
 #else
     sw_ctx_cipher_data = qctx->sw_ctx_cipher_data;
     if (!sw_ctx_cipher_data)
@@ -1454,7 +1421,6 @@ use_sw_method:
     sts = EVP_CIPHER_meth_get_do_cipher(EVP_sm4_gcm())(ctx, out, in, len);
 
     EVP_CIPHER_CTX_set_cipher_data(ctx, qctx);
-    DEBUG("SW Offload Finished sts=%d\n", sts);
 #endif
 err:
     return sts;

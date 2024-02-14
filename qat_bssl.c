@@ -142,7 +142,6 @@ int bssl_qat_send_ctrl_cmd(ENGINE *e, const char *cmd_name,
              * Currently, init log may be essential before calling
              * ENGINE_load_qat()
              */
-            QAT_DEBUG_LOG_INIT();
             return 1;/* Success */
         }
         if (strcmp(cmd_name, tbl->cmd_name) == 0) {
