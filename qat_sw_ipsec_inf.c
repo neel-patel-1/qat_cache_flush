@@ -58,20 +58,27 @@ void qat_imb_aes_gcm_precomp(int nid, IMB_MGR *ipsec_mgr,
                              struct gcm_key_data *key_data_ptr)
 {
 
+	DEBUG("AES_PRECOMP\n");
     switch (nid) {
         case NID_aes_128_gcm:
-            aes_keyexp_128_enc_avx512(key, key_data_ptr);
-            IMB_AES128_GCM_PRECOMP(ipsec_mgr, key_data_ptr);
+			DEBUG("PRECOMP PRE AVX512\n");
+            //aes_keyexp_128_enc_avx512(key, key_data_ptr);
+			DEBUG("PRECOMP PRE IMB\n");
+            //IMB_AES128_GCM_PRECOMP(ipsec_mgr, key_data_ptr);
             break;
 
         case NID_aes_192_gcm:
-            aes_keyexp_192_enc_avx512(key, key_data_ptr);
-            IMB_AES192_GCM_PRECOMP(ipsec_mgr, key_data_ptr);
+			DEBUG("PRECOMP PRE AVX512\n");
+            //aes_keyexp_192_enc_avx512(key, key_data_ptr);
+			DEBUG("PRECOMP PRE IMB\n");
+            //IMB_AES192_GCM_PRECOMP(ipsec_mgr, key_data_ptr);
             break;
 
         case NID_aes_256_gcm:
-            aes_keyexp_256_enc_avx512(key, key_data_ptr);
-            IMB_AES256_GCM_PRECOMP(ipsec_mgr, key_data_ptr);
+			DEBUG("PRECOMP PRE AVX512\n");
+            //aes_keyexp_256_enc_avx512(key, key_data_ptr);
+			DEBUG("PRECOMP PRE IMB\n");
+            //IMB_AES256_GCM_PRECOMP(ipsec_mgr, key_data_ptr);
             break;
     }
 }
@@ -83,6 +90,8 @@ void qat_imb_aes_gcm_init_var_iv(int nid, IMB_MGR *ipsec_mgr,
                                 const uint8_t *aad, const uint64_t aad_len)
 {
 
+			/*
+	DEBUG("AES_INIT_VAR_IV\n");
     switch (nid) {
         case NID_aes_128_gcm:
             IMB_AES128_GCM_INIT_VAR_IV(ipsec_mgr,
@@ -101,6 +110,7 @@ void qat_imb_aes_gcm_init_var_iv(int nid, IMB_MGR *ipsec_mgr,
             break;
 
         case NID_aes_256_gcm:
+			DEBUG("PRE INIT IV\n");
             IMB_AES256_GCM_INIT_VAR_IV(ipsec_mgr,
                                        key_data_ptr,
                                        gcm_ctx_ptr,
@@ -108,6 +118,7 @@ void qat_imb_aes_gcm_init_var_iv(int nid, IMB_MGR *ipsec_mgr,
                                        aad, aad_len);
             break;
     }
+			*/
 }
 
 void qat_imb_aes_gcm_enc_update(int nid, IMB_MGR *ipsec_mgr,
@@ -133,10 +144,13 @@ void qat_imb_aes_gcm_enc_update(int nid, IMB_MGR *ipsec_mgr,
             break;
 
         case NID_aes_256_gcm:
+			DEBUG("PRE AES UPDATE\n");
+			/*
             IMB_AES256_GCM_ENC_UPDATE(ipsec_mgr,
                                       key_data_ptr,
                                       gcm_ctx_ptr,
                                       out, in, len);
+			*/
             break;
     }
 }
@@ -147,6 +161,8 @@ void qat_imb_aes_gcm_dec_update(int nid, IMB_MGR *ipsec_mgr,
                                 uint8_t *out, const uint8_t *in,
                                 uint64_t len)
 {
+	DEBUG("AES_DECRYPT_UPDATE\n");
+	/*
     switch (nid) {
         case NID_aes_128_gcm:
             IMB_AES128_GCM_DEC_UPDATE(ipsec_mgr,
@@ -163,12 +179,14 @@ void qat_imb_aes_gcm_dec_update(int nid, IMB_MGR *ipsec_mgr,
             break;
 
         case NID_aes_256_gcm:
+			DEBUG("PRE_DECRYPT_UPDATE\n");
             IMB_AES256_GCM_DEC_UPDATE(ipsec_mgr,
                                       key_data_ptr,
                                       gcm_ctx_ptr,
                                       out, in, len);
             break;
     }
+	    */
 }
 
 void qat_imb_aes_gcm_enc_finalize(int nid, IMB_MGR *ipsec_mgr,
@@ -178,6 +196,7 @@ void qat_imb_aes_gcm_enc_finalize(int nid, IMB_MGR *ipsec_mgr,
 
 {
 
+	DEBUG("AES_FINALIZE\n");
     switch (nid) {
         case NID_aes_128_gcm:
             IMB_AES128_GCM_ENC_FINALIZE(ipsec_mgr,
@@ -194,6 +213,7 @@ void qat_imb_aes_gcm_enc_finalize(int nid, IMB_MGR *ipsec_mgr,
             break;
 
         case NID_aes_256_gcm:
+			DEBUG("PRE AES_FINALIZE\n");
             IMB_AES256_GCM_ENC_FINALIZE(ipsec_mgr,
                                         key_data_ptr,
                                         gcm_ctx_ptr,
@@ -209,6 +229,8 @@ void qat_imb_aes_gcm_dec_finalize(int nid, IMB_MGR *ipsec_mgr,
 
 {
 
+	DEBUG("AES_DECRYPT_FINALIZE\n");
+			/*
     switch (nid) {
         case NID_aes_128_gcm:
             IMB_AES128_GCM_DEC_FINALIZE(ipsec_mgr,
@@ -225,12 +247,14 @@ void qat_imb_aes_gcm_dec_finalize(int nid, IMB_MGR *ipsec_mgr,
             break;
 
         case NID_aes_256_gcm:
+			DEBUG("PRE DECRYPT FINALIZE\n");
             IMB_AES256_GCM_DEC_FINALIZE(ipsec_mgr,
                                         key_data_ptr,
                                         gcm_ctx_ptr,
                                         auth_tag, auth_tag_len);
             break;
     }
+			*/
 }
 
 #if defined(ENABLE_QAT_FIPS) && defined(ENABLE_QAT_SW_SHA2)

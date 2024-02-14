@@ -1,27 +1,6 @@
-# Intel&reg; QuickAssist Technology(QAT) OpenSSL\* Engine
-Intel&reg; QuickAssist Technology OpenSSL\* Engine (QAT_Engine) supports
-acceleration for both hardware as well as optimized software based
-on vectorized instructions. This change starting with the 3rd Generation
-Intel&reg; Xeon&reg; Scalable Processors family provides users more options to
-accelerate their workloads. The QAT OpenSSL\* engine now supports the ability
-to accelerate from the stand OpenSSL\* to basic Intel instruction set, to either
-Hardware acceleration path (via the qat_hw path) or via the optimized SW path
-(qat_sw lib). This document details the capabilities and interfaces for both
-internal libraries which maintaining the cohesiveness of being all packaged
-up with the QAT_Engine.
+# Modified QuickAssist Technology(QAT) OpenSSL\* Engine with AES-GCM Offloading
 
-The image below illustrates the high-level software architecture of the
-QAT_Engine. Applications such as NGINX and HAProxy are common applications
-which interfaces to OpenSSL\*. OpenSSL\* is a toolkit for TLS/SSL protocols and
-has developed a modular system to plugin device-specific engines starting
-with  version 1.1.0. As mentioned above, within the QAT_Engine are two separate
-internal entities by which acceleration can be performed. Depending on your
-particular use case, the QAT_Engine can be configured to meet your specific
-acceleration needs. This document details the capabilities of the QAT engine
-as well as the limitations. Both the hardware and software requirements are
-explained followed by detailed instructions how to install QAT_Engine. If you
-have any issues integrating the QAT_Engine, we’ve added a troubleshooting
-section.
+modifications are in qat_sw_gcm.c and qat_hw_gcm.h
 
 <p align=center>
 <img src="docs/images/qat_engine.png" alt="drawing" width="300"/>

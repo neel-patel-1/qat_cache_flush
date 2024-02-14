@@ -557,6 +557,12 @@ int qat_sw_cpu_support(void)
     DEBUG("QAT_SW - Processor supported: AVX512F = %u, VAES = %u, VPCLMULQDQ = %u\n",
            avx512f, vaes, vpclmulqdq);
 
+	/*
+	attempting to force sw_offload methods to be called
+	*/
+	DEBUG("FORCING IPSEC\n");
+	qat_sw_ipsec = 1;
+	
     if (avx512f && vaes && vpclmulqdq) {
         return 1;
     } else {

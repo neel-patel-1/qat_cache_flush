@@ -10,8 +10,7 @@
  *   modification, are permitted provided that the following conditions
  *   are met:
  *
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions of source code must retain the above copyright *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in
  *       the documentation and/or other materials provided with the
@@ -70,6 +69,23 @@
 # include "qat_prov_cmvp.h"
 #endif
 
+/* Cache flush includes */
+#include <x86intrin.h>
+
+/* Char Device Offload Open includes */
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+
+/* measuring effect of waiting on accelerator */
+#include <time.h>
+
 #define QAT_GCM_TLS_TOTAL_IV_LEN (EVP_GCM_TLS_FIXED_IV_LEN + EVP_GCM_TLS_EXPLICIT_IV_LEN)
 #define QAT_GCM_TLS_PAYLOADLENGTH_MSB_OFFSET 2
 #define QAT_GCM_TLS_PAYLOADLENGTH_LSB_OFFSET 1
@@ -127,6 +143,12 @@ static int qat_check_gcm_nid(int nid)
 
 #endif
 
+/*SMARTDIMM CONFIGS*/
+//#define DO_FLUSH 1
+#define fl_ratio 4
+int fl_ctr;
+
+
 #ifdef ENABLE_QAT_SW_GCM
 /******************************************************************************
  * function:
@@ -174,6 +196,7 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX *ctx,
         QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_INIT_FAILURE);
         return 0;
     }
+	*/
 
     DEBUG("QAT SW GCM Started CTX = %p, key = %p, iv = %p, enc = %d\n",
          (void*)ctx, (void*)inkey, (void*)iv, enc);
@@ -197,14 +220,14 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX *ctx,
     /* If a key is set and a tag has already been calculated
      * this cipher ctx is being reused, so zero the gcm ctx and tag state variables */
     if (qctx->ckey_set && qctx->tag_calculated) {
-        memset(&(qctx->gcm_ctx), 0, sizeof(qctx->gcm_ctx));
+        memset(&(qctx->gcm_ctx), 0, sizeof(qctx->gcm_ctx));DEBUG("KEY SET AND TAG CALCULATED\n");
         qctx->tag_set = 0;
         qctx->tag_calculated = 0;
         }
 
     /* Allocate gcm auth tag */
     if (!qctx->tag) {
-        qctx->tag = OPENSSL_zalloc(EVP_GCM_TLS_TAG_LEN);
+        qctx->tag = OPENSSL_zalloc(EVP_GCM_TLS_TAG_LEN); DEBUG("ALLOCATING GCM AUTH TAG\n");
 
         if (qctx->tag) {
             qctx->tag_len = EVP_GCM_TLS_TAG_LEN;
@@ -228,7 +251,7 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX *ctx,
 
     /* Allocate gcm calculated_tag */
     if (!qctx->calculated_tag) {
-        qctx->calculated_tag = OPENSSL_zalloc(EVP_GCM_TLS_TAG_LEN);
+        qctx->calculated_tag = OPENSSL_zalloc(EVP_GCM_TLS_TAG_LEN);DEBUG("ALLOCATING CALCULATED GCM TAG\b");
 
         if (qctx->calculated_tag) {
             qctx->tag_calculated = 0;
@@ -375,7 +398,7 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
             DEBUG("CTRL Type = EVP_CTRL_INIT, ctx = %p, type = %d, "
                   "arg = %d, ptr = %p\n", (void*)ctx, type, arg, ptr);
 
-            memset(qctx, 0, sizeof(vaesgcm_ctx));
+            //memset(qctx, 0, sizeof(vaesgcm_ctx));
 
             qctx->tls_aad_len     = -1;
             qctx->iv_gen          = -1;
@@ -418,6 +441,7 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
             }
 
             qctx->tag = OPENSSL_zalloc(arg);
+			/*
             if (qctx->tag) {
                 memcpy(qctx->tag, ptr, arg);
                 qctx->tag_len = arg;
@@ -429,6 +453,9 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
                 QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_ALLOC_TAG_FAILURE);
                 ret_val = 0;
             }
+			*/
+                qctx->tag_set = 1;
+                ret_val = 1;
             break;
         }
 
@@ -448,8 +475,8 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
                 WARN("Tag not set\n");
                 ret_val = 0;
                 break;
-            } else
-                memcpy(ptr, qctx->tag, arg);
+            } //else
+               // memcpy(ptr, qctx->tag, arg);
 
             DUMPL("Getting Tag", (const unsigned char*)qctx->tag, arg);
             qctx->iv_set = 0;
@@ -461,88 +488,18 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
         }
 
         case EVP_CTRL_GCM_SET_IV_FIXED: {
+		/* what does set IV_FIXED DO? removal broke it*/
             DEBUG("CTRL Type = EVP_CTRL_GCM_SET_IV_FIXED, ctx = %p, type = %d,"
                   " arg = %d, ptr = %p\n", (void*)ctx, type, arg, ptr);
 
-            if (ptr == NULL || qctx->next_iv == NULL) {
-                WARN("ptr || next_iv == NULL \n");
-                QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_INVALID_PTR_IV);
-                ret_val = 0;
-                break;
-            }
-            /* Special case: -1 length restores whole IV */
-            if (arg == -1) {
-                DEBUG("Special case - Restoring IV, arg = %d\n", arg);
-                memcpy(qctx->next_iv, ptr, qctx->iv_len);
-                qctx->iv_gen = 1;
-                ret_val      = 1;
-                break;
-            }
-
-            /* Fixed field must be at least 4 bytes (EVP_GCM_TLS_FIXED_IV_LEN)
-             * and invocation field at least 8 (EVP_GCM_TLS_EXPLICIT_IV_LEN)
-             */
-            if ((arg < EVP_GCM_TLS_FIXED_IV_LEN) ||
-                (qctx->iv_len - arg) < EVP_GCM_TLS_EXPLICIT_IV_LEN) {
-                WARN("Length is not valid\n");
-                QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_INVALID_IVLEN);
-                ret_val = 0;
-                break;
-            }
-
-            if (arg != EVP_GCM_TLS_FIXED_IV_LEN) {
-                WARN("IV length is not currently supported, iv_len = %d\n", arg);
-                QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_INVALID_IVLEN);
-                ret_val = 0;
-                break;
-            }
 
             int iv_len = EVP_GCM_TLS_FIXED_IV_LEN;
 
-            if (!qctx->iv) {
-                qctx->iv = OPENSSL_zalloc(iv_len);
-
-                if (qctx->iv == NULL) {
-                    WARN("Failed to allocate %d bytes\n", arg);
-                    QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_IV_ALLOC_FAILURE);
-                    qctx->iv_len = 0;
-                    qctx->iv_gen = 0;
-                    ret_val      = 0;
-                    break;
-                } else
-                    qctx->iv_len = iv_len;
-            }
-
-            if (!qctx->next_iv) {
-                qctx->next_iv = OPENSSL_zalloc(iv_len);
-
-                if (qctx->next_iv == NULL) {
-                    WARN("Failed to allocate %d bytes\n", arg);
-                    QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_IV_ALLOC_FAILURE);
-                    qctx->iv_len = 0;
-                    qctx->iv_gen = 0;
-                    ret_val      = 0;
-                    break;
-                } else
-                    qctx->iv_len = iv_len;
-            }
+			qctx->iv_len = iv_len;
 
             DUMPL("EVP_CTRL_GCM_SET_IV_FIXED - next_iv Pre",
                  (const unsigned char*)qctx->next_iv, qctx->iv_len);
 
-            if (arg) {
-                memcpy(qctx->next_iv, ptr, arg);
-            }
-            DUMPL("EVP_CTRL_GCM_SET_IV_FIXED - next_iv Post",
-                 (const unsigned char*)qctx->next_iv, qctx->iv_len);
-
-            /* Generate the explicit part of the IV for encryption */
-            if (enc && RAND_bytes(qctx->next_iv + arg, qctx->iv_len - arg) <= 0) {
-                WARN("RAND_Bytes Failed to generate explicit IV\n");
-                QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_RAND_BYTES_FAILURE);
-                ret_val = 0;
-                break;
-            }
 
             DUMPL("EVP_CTRL_GCM_SET_IV_FIXED - next _iv explicit",
                   (const unsigned char*)qctx->next_iv, qctx->iv_len);
@@ -572,16 +529,16 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
             }
 
             /* Set the IV that will be used in the current operation */
-            memcpy(qctx->iv, qctx->next_iv, qctx->iv_len);
+            //memcpy(qctx->iv, qctx->next_iv, qctx->iv_len);
             if (arg <= 0 || arg > qctx->iv_len) {
                 arg = qctx->iv_len;
             }
 
             /* Copy the explicit IV in the output buffer */
-            memcpy(ptr, qctx->next_iv + qctx->iv_len - arg, arg);
+            //memcpy(ptr, qctx->next_iv + qctx->iv_len - arg, arg);
 
             /* Increment invocation field counter (last 8 bytes of IV) */
-            aes_gcm_increment_counter(qctx->next_iv + qctx->iv_len - 8);
+            //aes_gcm_increment_counter(qctx->next_iv + qctx->iv_len - 8);
 
             qctx->iv_set = 1;
             ret_val = 1;
@@ -607,9 +564,9 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
             }
 
             /* Retrieve the explicit IV from the message buffer */
-            memcpy(qctx->next_iv + qctx->iv_len - arg, ptr, arg);
+            //memcpy(qctx->next_iv + qctx->iv_len - arg, ptr, arg);
             /* Set the IV that will be used in the current operation */
-            memcpy(qctx->iv, qctx->next_iv, qctx->iv_len);
+            //memcpy(qctx->iv, qctx->next_iv, qctx->iv_len);
 
             qctx->iv_set = 1;
             ret_val = 1;
@@ -617,6 +574,7 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
         }
 
         case EVP_CTRL_AEAD_TLS1_AAD: {
+		/*why do we have additional authentication data?*/
             DEBUG("CTRL Type = EVP_CTRL_AEAD_TLS1_AAD, ctx = %p, type = %d,"
                   " arg = %d, ptr = %p\n", (void*)ctx, type, arg, ptr);
 
@@ -628,28 +586,6 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
 
             /* Check to see if tls_aad already allocated with correct size,
              * if so, reuse and save ourselves a free and malloc */
-            if ((qctx->tls_aad_len == EVP_AEAD_TLS1_AAD_LEN) && qctx->tls_aad)
-                memcpy(qctx->tls_aad, ptr, qctx->tls_aad_len);
-            else {
-                if (qctx->tls_aad) {
-                    OPENSSL_free(qctx->tls_aad);
-                    qctx->tls_aad_len = -1;
-                    qctx->tls_aad_set = 0;
-                }
-
-                qctx->tls_aad_len = EVP_AEAD_TLS1_AAD_LEN;
-
-                qctx->tls_aad = OPENSSL_malloc(qctx->tls_aad_len);
-                if (qctx->tls_aad) {
-                    /* Copy the header from payload into the buffer */
-                    memcpy(qctx->tls_aad, ptr, qctx->tls_aad_len);
-                } else {
-                    WARN("AAD alloc failed\n");
-                    QATerr(QAT_F_VAESGCM_CIPHERS_CTRL, QAT_R_MALLOC_FAILURE);
-                    ret_val = 0;
-                    break;
-                }
-            }
 
             /* Extract the length of the payload from the TLS header */
             unsigned int plen = qctx->tls_aad[arg - QAT_GCM_TLS_PAYLOADLENGTH_MSB_OFFSET]
@@ -663,13 +599,6 @@ int vaesgcm_ciphers_ctrl(EVP_CIPHER_CTX* ctx, int type, int arg, void* ptr)
             if (!enc) {
                 plen -= EVP_GCM_TLS_TAG_LEN;
             }
-
-            /* Fix the length like in the SW version of GCM */
-            qctx->tls_aad[EVP_AEAD_TLS1_AAD_LEN - QAT_GCM_TLS_PAYLOADLENGTH_MSB_OFFSET] =
-                plen >> QAT_BYTE_SHIFT;
-            qctx->tls_aad[EVP_AEAD_TLS1_AAD_LEN - QAT_GCM_TLS_PAYLOADLENGTH_LSB_OFFSET] =
-                plen;  // & 0xff;
-            qctx->tls_aad_set = 1;
 
             /* Extra padding: tag appended to record */
             ret_val = EVP_GCM_TLS_TAG_LEN;
@@ -1194,7 +1123,7 @@ int vaesgcm_init_key(EVP_CIPHER_CTX *ctx, const unsigned char* inkey)
     key = (const void*)(inkey);
     key_data_ptr = &(qctx->key_data);
 
-    qat_imb_aes_gcm_precomp(nid, ipsec_mgr, key, key_data_ptr);
+    //qat_imb_aes_gcm_precomp(nid, ipsec_mgr, key, key_data_ptr);
 
     qctx->ckey_set = 1;
     return 1;

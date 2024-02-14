@@ -774,6 +774,7 @@ int qat_pkey_methods(ENGINE *e, EVP_PKEY_METHOD **pmeth,
 
 static inline const EVP_CIPHER *qat_gcm_cipher_sw_impl(int nid)
 {
+	DEBUG("CHOOSING EVP_CIPHER\n");
     switch (nid) {
         case NID_aes_128_gcm:
             return EVP_aes_128_gcm();
