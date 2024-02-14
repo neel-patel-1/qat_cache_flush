@@ -224,6 +224,7 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX *ctx,
         }
 
     /* Allocate gcm auth tag */
+	/*
     if (!qctx->tag) {
 
         if (qctx->tag) {
@@ -236,6 +237,7 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX *ctx,
             return 0;
         }
     }
+	*/
 
 #ifdef QAT_OPENSSL_PROVIDER
     /* The OpenSSL 3.0 provider framework has different flow
@@ -247,17 +249,17 @@ int vaesgcm_ciphers_init(EVP_CIPHER_CTX *ctx,
 #endif
 
     /* Allocate gcm calculated_tag */
-    if (!qctx->calculated_tag) {
+    // if (!qctx->calculated_tag) {
 
-        if (qctx->calculated_tag) {
-            qctx->tag_calculated = 0;
-        } else {
-            qctx->tag_len = 0;
-            WARN("Failed to allocate qctx->calculated_tag\n");
-            QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_ALLOC_TAG_FAILURE);
-            return 0;
-        }
-    }
+    //     if (qctx->calculated_tag) {
+    //         qctx->tag_calculated = 0;
+    //     } else {
+    //         qctx->tag_len = 0;
+    //         WARN("Failed to allocate qctx->calculated_tag\n");
+    //         QATerr(QAT_F_VAESGCM_CIPHERS_INIT, QAT_R_ALLOC_TAG_FAILURE);
+    //         return 0;
+    //     }
+    // }
 
     /* If we have an IV passed in, and the iv_len has not yet been set
      *  default to QAT_GCM_TLS_TOTAL_IV_LEN (if IV size isn't 12 bytes,
